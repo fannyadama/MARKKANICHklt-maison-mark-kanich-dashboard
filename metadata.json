@@ -1,0 +1,6 @@
+{
+  "name": "KLT — Maison Mark Kanich Dashboard",
+  "description": "Plateforme complète Kanich Luxury Token ($KLT) : Tableau de bord portefeuille, Trading Solana & Pump.fun, Staking, Gouvernance DAO, Livre Blanc v3.1.0 et Administration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

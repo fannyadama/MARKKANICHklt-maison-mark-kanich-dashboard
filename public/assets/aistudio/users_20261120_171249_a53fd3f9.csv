@@ -1,0 +1,6 @@
+id,openId,name,email,loginMethod,role,createdAt,updatedAt,lastSignedIn
+1,EUMpQYUhqRm2DxgmRrWzVw,Adama Fanny Sheickner,fannyadama159@gmail.com,google,admin,2026-05-16 13:42:34,2026-11-20 17:12:07,2026-11-20 17:12:08
+720001,test-referrer-1779441303246,Test Referrer,referrer-1779441303246@test.com,,user,2026-05-22 09:15:04,2026-05-22 09:15:04,2026-05-22 09:15:04
+720002,test-referred-1779441304491,Test Referred,referred-1779441304491@test.com,,user,2026-05-22 09:15:04,2026-05-22 09:15:04,2026-05-22 09:15:04
+720003,test-referrer-1779441319915,Test Referrer,referrer-1779441319915@test.com,,user,2026-05-22 09:15:20,2026-05-22 09:15:20,2026-05-22 09:15:20
+720004,test-referred-1779441320489,Test Referred,referred-1779441320489@test.com,,user,2026-05-22 09:15:20,2026-05-22 09:15:20,2026-05-22 09:15:20
