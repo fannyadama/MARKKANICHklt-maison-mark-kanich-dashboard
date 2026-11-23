@@ -15,6 +15,8 @@ export type RouteId =
   | 'export-pdf'
   | 'live-statistics'
   | 'crypto-rates'
+  | 'pillars-reporting'
+  | 'referral'
   | 'dao'
   | 'faq'
   | 'faq-admin'
@@ -24,7 +26,11 @@ export type RouteId =
   | '2fa'
   | 'login-history'
   | 'subscription'
-  | 'checkout';
+  | 'checkout'
+  | 'remboursement'
+  | 'action-plan';
+
+export type WorkspaceMode = 'all' | 'stipulor' | 'klt';
 
 export type Language = 'fr' | 'en';
 export type FiatCurrency = 'USD' | 'EUR' | 'XOF';
@@ -205,8 +211,10 @@ export interface PriceAlertRule {
   id: string;
   condition: 'above' | 'below';
   targetPriceUsd: number;
+  label?: string;
   active: boolean;
   triggered: boolean;
+  triggeredAt?: string;
   createdAt: string;
 }
 
@@ -220,5 +228,16 @@ export interface NotificationLogItem {
   read: boolean;
   actionLabel?: string;
   actionRoute?: RouteId;
+}
+
+export interface ReferralRecord {
+  id: string;
+  partnerName: string;
+  tier: 'KANICH BLACK' | 'KANICH GOLD' | 'KANICH PLATINUM';
+  code: string;
+  volumeUsd: number;
+  rewardKlt: number;
+  status: 'Active' | 'Pending';
+  joinedAt: string;
 }
 

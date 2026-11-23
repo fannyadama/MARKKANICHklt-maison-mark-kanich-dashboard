@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Download, FileText, Search } from 'lucide-react';
+import { Download, FileText, Search, ShieldCheck } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
+import { CSV_USERS_REGISTRY } from '../data/kltSeedData';
 import { TransactionType } from '../types/klt';
 
 export const HistoryExportView: React.FC = () => {
@@ -42,7 +43,33 @@ export const HistoryExportView: React.FC = () => {
     a.download = `klt-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    notify(t('Relevé CSV téléchargé.', 'CSV statement downloaded.'));
+    notify(t('Relevé CSV transactions téléchargé (sans PII).', 'CSV statement downloaded (no PII).'));
+  };
+
+  const exportAnonymizedUsersCsv = () => {
+    const headers = ['id', 'name', 'role', 'createdAt', 'lastSignedIn'];
+    const cleanUsers = CSV_USERS_REGISTRY.filter((u) => !u.email.toLowerCase().endsWith('@test.com'));
+    const rows = cleanUsers.map((u) => [
+      u.id,
+      `"${u.name.replace(/"/g, '""')}"`,
+      u.role,
+      u.createdAt,
+      u.lastSignedIn,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `klt-users-anonymized-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify(
+      t(
+        'Export utilisateurs anonymisé téléchargé (openId et emails exclus).',
+        'Anonymized users CSV downloaded (openId and emails omitted).'
+      )
+    );
   };
 
   const printPdfReport = () => {
@@ -58,18 +85,29 @@ export const HistoryExportView: React.FC = () => {
             {t('Historique & Exports Certifiés', 'Transaction History & Certified Exports')}
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            {t('Audit complet des opérations et génération de relevés CSV / PDF.', 'Complete operations audit trail and CSV / PDF statement export.')}
+            {t(
+              'Audit complet des opérations, relevés PDF et exports CSV anonymisés (sans openId ni email).',
+              'Complete operations audit trail, PDF statements, and anonymized CSV exports.'
+            )}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={exportAnonymizedUsersCsv}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-semibold text-emerald-300 whitespace-nowrap"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            {t('CSV Anonymisé (Sans PII)', 'Anonymized CSV (No PII)')}
+          </button>
           <button
             type="button"
             onClick={exportCsv}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-200 whitespace-nowrap"
           >
             <Download className="w-4 h-4 text-amber-400" />
-            {t('Exporter CSV', 'Export CSV')}
+            {t('Exporter CSV Opérations', 'Export Operations CSV')}
           </button>
           <button
             type="button"
@@ -90,7 +128,7 @@ export const HistoryExportView: React.FC = () => {
               MAISON MARK KANICH · KIIS GLOBAL
             </p>
             <p className="text-xs text-slate-400">
-              {t('Titulaire', 'Account Holder')}: {user.name} ({user.email})
+              {t('Titulaire', 'Account Holder')}: {user.name} · ID #{user.id} · {t('Export sans PII', 'PII-redacted export')}
             </p>
           </div>
           <div className="text-right text-xs font-mono-tabular">

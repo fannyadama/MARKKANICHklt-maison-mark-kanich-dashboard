@@ -22,6 +22,8 @@ import {
   SettingsProfileView,
   SubscriptionCheckoutView,
 } from './pages/AccountAdminViews';
+import { ActionPlanComplianceView, RefundPolicyView } from './pages/ComplianceRefundView';
+import { EightPillarsReportingView, ReferralProgramView } from './pages/ReferralAndPillarsView';
 
 const RouteView: React.FC = () => {
   const { route } = useKLTStore();
@@ -56,6 +58,10 @@ const RouteView: React.FC = () => {
       return <PresentationView initialSection="klt-token" />;
     case 'roadmap':
       return <PresentationView initialSection="roadmap" />;
+    case 'pillars-reporting':
+      return <EightPillarsReportingView />;
+    case 'referral':
+      return <ReferralProgramView />;
     case 'whitepaper':
       return <WhitepaperView />;
     case 'faq':
@@ -74,6 +80,10 @@ const RouteView: React.FC = () => {
     case 'subscription':
     case 'checkout':
       return <SubscriptionCheckoutView />;
+    case 'remboursement':
+      return <RefundPolicyView />;
+    case 'action-plan':
+      return <ActionPlanComplianceView />;
     default:
       return <DashboardView />;
   }

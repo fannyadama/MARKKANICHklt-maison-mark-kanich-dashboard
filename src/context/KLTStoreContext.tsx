@@ -7,6 +7,7 @@ import {
   INITIAL_FAQ_ITEMS,
   INITIAL_LOGIN_SESSIONS,
   INITIAL_OPEN_ORDERS,
+  INITIAL_REFERRALS,
   INITIAL_TRANSACTIONS,
   INITIAL_USER_PROFILE,
   INITIAL_WALLETS,
@@ -23,11 +24,13 @@ import {
   NotificationLogItem,
   OpenOrderRecord,
   PriceAlertRule,
+  ReferralRecord,
   RouteId,
   TransactionRecord,
   UserProfile,
   UserRole,
   WalletRecord,
+  WorkspaceMode,
 } from '../types/klt';
 
 export interface ToastNotice {
@@ -69,6 +72,14 @@ interface PersistedState {
   priceAlerts: PriceAlertRule[];
   notificationsLog: NotificationLogItem[];
   lastStakingMilestoneKlt: number;
+  workspaceMode: WorkspaceMode;
+  featureWeb3: boolean;
+  web3ModeEnabled: boolean;
+  customDomain: string;
+  kltMintAddress: string;
+  walletProvider: 'Phantom' | 'Solflare';
+  referrals: ReferralRecord[];
+  onboardingDismissed: boolean;
 }
 
 const STORAGE_KEY = 'klt_maison_mark_kanich_state_v1';
@@ -138,6 +149,14 @@ const DEFAULT_STATE: PersistedState = {
   priceAlerts: DEFAULT_PRICE_ALERTS,
   notificationsLog: DEFAULT_NOTIFICATIONS_LOG,
   lastStakingMilestoneKlt: 1400,
+  workspaceMode: 'all',
+  featureWeb3: true,
+  web3ModeEnabled: true,
+  customDomain: 'dashboard.markkanich.com',
+  kltMintAddress: 'KLT9xMpR4vN2wB8yH5cZ1eJ6fM3aU9dS4kT8nV2xPq',
+  walletProvider: 'Phantom',
+  referrals: INITIAL_REFERRALS,
+  onboardingDismissed: false,
 };
 
 function loadInitialState(): PersistedState {
@@ -154,6 +173,7 @@ function loadInitialState(): PersistedState {
       notificationsLog: Array.isArray(parsed.notificationsLog)
         ? parsed.notificationsLog
         : DEFAULT_NOTIFICATIONS_LOG,
+      referrals: Array.isArray(parsed.referrals) ? parsed.referrals : INITIAL_REFERRALS,
     };
   } catch {
     return DEFAULT_STATE;
@@ -217,12 +237,35 @@ interface KLTStoreContextValue {
   priceAlerts: PriceAlertRule[];
   notificationsLog: NotificationLogItem[];
   unreadNotificationsCount: number;
-  addPriceAlert: (condition: 'above' | 'below', targetPriceUsd: number) => void;
+  addPriceAlert: (condition: 'above' | 'below', targetPriceUsd: number, label?: string) => void;
   togglePriceAlert: (id: string) => void;
+  rearmPriceAlert: (id: string) => void;
   deletePriceAlert: (id: string) => void;
+  markPriceAlertsTriggered: (ruleIds: string[], triggeredAt: string) => void;
+  setKltSimulatedPrice: (nextPriceUsd: number, announceIfNoRuleTriggered?: boolean) => void;
+  autoPriceWatch: boolean;
+  setAutoPriceWatch: (enabled: boolean) => void;
   markAllNotificationsRead: () => void;
   clearNotificationsLog: () => void;
   triggerSampleMilestoneOrAlert: (kind: 'staking' | 'price_alert') => void;
+  workspaceMode: WorkspaceMode;
+  setWorkspaceMode: (mode: WorkspaceMode) => void;
+  featureWeb3: boolean;
+  setFeatureWeb3: (enabled: boolean) => void;
+  web3ModeEnabled: boolean;
+  setWeb3ModeEnabled: (enabled: boolean) => void;
+  showWeb3Wallet: boolean;
+  customDomain: string;
+  setCustomDomain: (domain: string) => void;
+  kltMintAddress: string;
+  setKltMintAddress: (mint: string) => void;
+  walletProvider: 'Phantom' | 'Solflare';
+  connectWalletWithProvider: (provider: 'Phantom' | 'Solflare') => Promise<void>;
+  referrals: ReferralRecord[];
+  addReferralInvite: (partnerName: string, tier?: ReferralRecord['tier']) => void;
+  onboardingDismissed: boolean;
+  dismissOnboarding: () => void;
+  reopenOnboarding: () => void;
 }
 
 const KLTStoreContext = createContext<KLTStoreContextValue | null>(null);
@@ -242,9 +285,15 @@ function nowTimestamp(): string {
 
 export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<PersistedState>(loadInitialState);
-  const [route, setRouteState] = useState<RouteId>('dashboard');
+  const [route, setRouteState] = useState<RouteId>(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.toLowerCase().includes('/remboursement')) {
+      return 'remboursement';
+    }
+    return 'dashboard';
+  });
   const [assets, setAssets] = useState<CryptoAsset[]>(CRYPTO_ASSETS);
   const [toasts, setToasts] = useState<ToastNotice[]>([]);
+  const [autoPriceWatch, setAutoPriceWatch] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -325,8 +374,26 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setRoute = useCallback((nextRoute: RouteId) => {
     setRouteState(nextRoute);
+    try {
+      const targetPath = nextRoute === 'remboursement' ? '/remboursement' : '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ route: nextRoute }, '', targetPath);
+      }
+    } catch {
+      // Ignore history restrictions in sandboxed environments
+    }
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (window.location.pathname.toLowerCase().includes('/remboursement')) {
+        setRouteState('remboursement');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   const t = useCallback(
@@ -401,20 +468,97 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => window.clearInterval(interval);
   }, [state.stakedKlt]);
 
+  const markPriceAlertsTriggered = useCallback((ruleIds: string[], triggeredAt: string) => {
+    if (ruleIds.length === 0) return;
+    setState((prev) => ({
+      ...prev,
+      priceAlerts: prev.priceAlerts.map((rule) =>
+        ruleIds.includes(rule.id) ? { ...rule, triggered: true, triggeredAt } : rule
+      ),
+    }));
+  }, []);
+
+  const setKltSimulatedPrice = useCallback(
+    (nextPriceUsd: number, announceIfNoRuleTriggered = false) => {
+      const clamped = Math.max(0.0001, +nextPriceUsd.toFixed(4));
+      const baseRef = 0.415;
+      const computedChange = +(((clamped - baseRef) / baseRef) * 100).toFixed(2);
+      const willTriggerRule = state.priceAlerts.some(
+        (rule) =>
+          rule.active &&
+          !rule.triggered &&
+          kltPriceUsd !== clamped &&
+          ((rule.condition === 'above' &&
+            kltPriceUsd < rule.targetPriceUsd &&
+            clamped >= rule.targetPriceUsd) ||
+            (rule.condition === 'below' &&
+              kltPriceUsd > rule.targetPriceUsd &&
+              clamped <= rule.targetPriceUsd))
+      );
+
+      setAssets((prev) =>
+        prev.map((asset) =>
+          asset.symbol === 'KLT'
+            ? {
+                ...asset,
+                priceUsd: clamped,
+                change24h: computedChange,
+                high24h: Math.max(asset.high24h, clamped),
+                low24h: Math.min(asset.low24h, clamped),
+              }
+            : asset
+        )
+      );
+
+      if (announceIfNoRuleTriggered && !willTriggerRule) {
+        notify(
+          state.language === 'fr'
+            ? `Cours $KLT actualisé à $${clamped.toFixed(4)}. Aucun seuil actif franchi.`
+            : `$KLT price updated to $${clamped.toFixed(4)}. No active threshold crossed.`,
+          'info',
+          {
+            category: 'price_alert',
+            title: state.language === 'fr' ? 'Simulation Cours $KLT' : '$KLT Price Simulation',
+          }
+        );
+      }
+    },
+    [kltPriceUsd, notify, state.language, state.priceAlerts]
+  );
+
   const refreshMarketPrices = useCallback(() => {
-    let nextKltPrice = kltPriceUsd;
-    let prevKltPrice = kltPriceUsd;
+    const prevKltPrice = kltPriceUsd;
+    const kltDelta = 1 + (Math.random() - 0.46) * 0.032;
+    const nextKltPrice = Math.max(0.0001, +(prevKltPrice * kltDelta).toFixed(4));
+    const hasMatchingRule = state.priceAlerts.some(
+      (rule) =>
+        rule.active &&
+        !rule.triggered &&
+        prevKltPrice !== nextKltPrice &&
+        ((rule.condition === 'above' &&
+          prevKltPrice < rule.targetPriceUsd &&
+          nextKltPrice >= rule.targetPriceUsd) ||
+          (rule.condition === 'below' &&
+            prevKltPrice > rule.targetPriceUsd &&
+            nextKltPrice <= rule.targetPriceUsd))
+    );
 
     setAssets((prev) =>
       prev.map((asset) => {
         if (asset.symbol === 'USDC') return asset;
+        if (asset.symbol === 'KLT') {
+          const nextChange = +(asset.change24h + ((nextKltPrice - asset.priceUsd) / asset.priceUsd) * 100).toFixed(2);
+          return {
+            ...asset,
+            priceUsd: nextKltPrice,
+            change24h: nextChange,
+            high24h: Math.max(asset.high24h, nextKltPrice),
+            low24h: Math.min(asset.low24h, nextKltPrice),
+          };
+        }
         const deltaFactor = 1 + (Math.random() - 0.46) * 0.028;
         const nextPrice = +(asset.priceUsd * deltaFactor).toFixed(asset.priceUsd < 5 ? 4 : 2);
         const nextChange = +(asset.change24h + (Math.random() - 0.45) * 0.8).toFixed(2);
-        if (asset.symbol === 'KLT') {
-          prevKltPrice = asset.priceUsd;
-          nextKltPrice = nextPrice;
-        }
         return {
           ...asset,
           priceUsd: nextPrice,
@@ -425,60 +569,56 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       })
     );
 
-    const matchedAlerts = state.priceAlerts.filter(
-      (rule) =>
-        rule.active &&
-        !rule.triggered &&
-        ((rule.condition === 'above' && nextKltPrice >= rule.targetPriceUsd) ||
-          (rule.condition === 'below' && nextKltPrice <= rule.targetPriceUsd))
-    );
-
-    if (matchedAlerts.length > 0 && state.user.notifications.priceAlerts) {
-      setState((prev) => ({
-        ...prev,
-        priceAlerts: prev.priceAlerts.map((rule) =>
-          matchedAlerts.some((m) => m.id === rule.id) ? { ...rule, triggered: true } : rule
-        ),
-      }));
-      matchedAlerts.forEach((rule) => {
+    if (!hasMatchingRule) {
+      if (
+        state.user.notifications.priceAlerts &&
+        Math.abs(nextKltPrice - prevKltPrice) / prevKltPrice >= 0.008
+      ) {
+        const pct = (((nextKltPrice - prevKltPrice) / prevKltPrice) * 100).toFixed(2);
         notify(
           state.language === 'fr'
-            ? `Le $KLT a atteint $${nextKltPrice.toFixed(4)} (seuil ${rule.condition === 'above' ? '≥' : '≤'} $${rule.targetPriceUsd.toFixed(4)}).`
-            : `$KLT reached $${nextKltPrice.toFixed(4)} (target ${rule.condition === 'above' ? '≥' : '≤'} $${rule.targetPriceUsd.toFixed(4)}).`,
-          'warning',
+            ? `Mouvement détecté sur $KLT : $${nextKltPrice.toFixed(4)} (${Number(pct) >= 0 ? '+' : ''}${pct}%).`
+            : `$KLT price move detected: $${nextKltPrice.toFixed(4)} (${Number(pct) >= 0 ? '+' : ''}${pct}%).`,
+          'info',
           {
             category: 'price_alert',
-            title: state.language === 'fr' ? 'Alerte Prix $KLT Déclenchée' : '$KLT Price Alert Triggered',
-            actionLabel: state.language === 'fr' ? 'Trader $KLT' : 'Trade $KLT',
+            title: state.language === 'fr' ? 'Alerte Marché $KLT' : '$KLT Market Alert',
+            actionLabel: state.language === 'fr' ? 'Voir Graphique' : 'View Chart',
             actionRoute: 'trade',
           }
         );
-      });
-    } else if (
-      state.user.notifications.priceAlerts &&
-      Math.abs(nextKltPrice - prevKltPrice) / prevKltPrice >= 0.008
-    ) {
-      const pct = (((nextKltPrice - prevKltPrice) / prevKltPrice) * 100).toFixed(2);
-      notify(
-        state.language === 'fr'
-          ? `Mouvement détecté sur $KLT : $${nextKltPrice.toFixed(4)} (${Number(pct) >= 0 ? '+' : ''}${pct}%).`
-          : `$KLT price move detected: $${nextKltPrice.toFixed(4)} (${Number(pct) >= 0 ? '+' : ''}${pct}%).`,
-        'info',
-        {
-          category: 'price_alert',
-          title: state.language === 'fr' ? 'Alerte Marché $KLT' : '$KLT Market Alert',
-          actionLabel: state.language === 'fr' ? 'Voir Graphique' : 'View Chart',
-          actionRoute: 'trade',
-        }
-      );
-    } else {
-      notify(
-        state.language === 'fr' ? 'Cours du marché actualisés.' : 'Market prices refreshed.',
-        'info',
-        { category: 'price_alert', title: state.language === 'fr' ? 'Flux Marché' : 'Market Feed' }
-      );
+      } else {
+        notify(
+          state.language === 'fr' ? 'Cours du marché actualisés.' : 'Market prices refreshed.',
+          'info',
+          { category: 'price_alert', title: state.language === 'fr' ? 'Flux Marché' : 'Market Feed' }
+        );
+      }
     }
   }, [kltPriceUsd, notify, state.language, state.priceAlerts, state.user.notifications.priceAlerts]);
+
+  // Optional live price stream every 8s when autoPriceWatch is enabled
+  useEffect(() => {
+    if (!autoPriceWatch) return;
+    const timer = window.setInterval(() => {
+      setAssets((prev) =>
+        prev.map((asset) => {
+          if (asset.symbol !== 'KLT') return asset;
+          const step = 1 + (Math.random() - 0.47) * 0.024;
+          const next = Math.max(0.0001, +(asset.priceUsd * step).toFixed(4));
+          const deltaPct = +(((next - asset.priceUsd) / asset.priceUsd) * 100).toFixed(2);
+          return {
+            ...asset,
+            priceUsd: next,
+            change24h: +(asset.change24h + deltaPct).toFixed(2),
+            high24h: Math.max(asset.high24h, next),
+            low24h: Math.min(asset.low24h, next),
+          };
+        })
+      );
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [autoPriceWatch]);
 
   const formatFiat = useCallback(
     (usdAmount: number, currencyOverride?: FiatCurrency) => {
@@ -1096,12 +1236,14 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   const addPriceAlert = useCallback(
-    (condition: 'above' | 'below', targetPriceUsd: number) => {
+    (condition: 'above' | 'below', targetPriceUsd: number, label?: string) => {
       if (targetPriceUsd <= 0) return;
+      const cleanLabel = label?.trim() || undefined;
       const rule: PriceAlertRule = {
         id: `pa-${Date.now()}`,
         condition,
-        targetPriceUsd,
+        targetPriceUsd: +targetPriceUsd.toFixed(4),
+        label: cleanLabel,
         active: true,
         triggered: false,
         createdAt: nowTimestamp(),
@@ -1109,8 +1251,8 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setState((prev) => ({ ...prev, priceAlerts: [rule, ...prev.priceAlerts] }));
       notify(
         t(
-          `Alerte créée : $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}.`,
-          `Alert set: $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}.`
+          `Alerte configurée : $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}${cleanLabel ? ` (${cleanLabel})` : ''}.`,
+          `Alert set: $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}${cleanLabel ? ` (${cleanLabel})` : ''}.`
         ),
         'info',
         { category: 'price_alert', title: t('Alerte Prix Configurée', 'Price Alert Configured') }
@@ -1123,10 +1265,27 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setState((prev) => ({
       ...prev,
       priceAlerts: prev.priceAlerts.map((r) =>
-        r.id === id ? { ...r, active: !r.active, triggered: false } : r
+        r.id === id ? { ...r, active: !r.active, triggered: false, triggeredAt: undefined } : r
       ),
     }));
   }, []);
+
+  const rearmPriceAlert = useCallback(
+    (id: string) => {
+      setState((prev) => ({
+        ...prev,
+        priceAlerts: prev.priceAlerts.map((r) =>
+          r.id === id ? { ...r, active: true, triggered: false, triggeredAt: undefined } : r
+        ),
+      }));
+      notify(
+        t('Alerte réarmée pour une nouvelle surveillance du seuil.', 'Alert re-armed for monitoring.'),
+        'info',
+        { category: 'price_alert', title: t('Alerte Réarmée', 'Alert Re-armed') }
+      );
+    },
+    [notify, t]
+  );
 
   const deletePriceAlert = useCallback((id: string) => {
     setState((prev) => ({
@@ -1194,6 +1353,134 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     },
     [kltPriceUsd, notify, state.stakingRewardsKlt, t]
   );
+
+  const setWorkspaceMode = useCallback(
+    (workspaceMode: WorkspaceMode) => {
+      setState((prev) => ({ ...prev, workspaceMode }));
+      notify(
+        workspaceMode === 'stipulor'
+          ? t('Vue basculée sur Stipulor (SaaS & Paddle / FCFA).', 'Switched to Stipulor SaaS workspace.')
+          : workspaceMode === 'klt'
+          ? t('Vue basculée sur $KLT (Solana Web3 & Staking).', 'Switched to $KLT Web3 workspace.')
+          : t('Vue unifiée Stipulor + $KLT activée.', 'Unified Stipulor + $KLT workspace active.'),
+        'info'
+      );
+    },
+    [notify, t]
+  );
+
+  const setFeatureWeb3 = useCallback(
+    (featureWeb3: boolean) => {
+      setState((prev) => ({ ...prev, featureWeb3 }));
+      notify(
+        featureWeb3
+          ? t('Flag global FEATURE_WEB3 activé (wallets $KLT visibles).', 'Global FEATURE_WEB3 enabled.')
+          : t('Flag global FEATURE_WEB3 désactivé (mode SaaS isolé).', 'Global FEATURE_WEB3 disabled (SaaS-only mode).'),
+        featureWeb3 ? 'success' : 'warning'
+      );
+    },
+    [notify, t]
+  );
+
+  const setWeb3ModeEnabled = useCallback(
+    (web3ModeEnabled: boolean) => {
+      setState((prev) => ({ ...prev, web3ModeEnabled }));
+      notify(
+        web3ModeEnabled
+          ? t('Mode Web3 KLT activé sur votre profil.', 'Web3 KLT mode enabled for your profile.')
+          : t('Mode Web3 KLT masqué. Espace SaaS préservé.', 'Web3 KLT mode hidden. SaaS workspace preserved.'),
+        'info'
+      );
+    },
+    [notify, t]
+  );
+
+  const setCustomDomain = useCallback(
+    (customDomain: string) => {
+      const cleaned = customDomain.trim() || 'dashboard.markkanich.com';
+      setState((prev) => ({ ...prev, customDomain: cleaned }));
+      notify(t(`Domaine cible enregistré : ${cleaned}`, `Target domain saved: ${cleaned}`), 'success');
+    },
+    [notify, t]
+  );
+
+  const setKltMintAddress = useCallback(
+    (kltMintAddress: string) => {
+      setState((prev) => ({ ...prev, kltMintAddress: kltMintAddress.trim() }));
+      notify(t('Adresse Mint SPL $KLT mise à jour.', '$KLT SPL Mint address updated.'), 'info');
+    },
+    [notify, t]
+  );
+
+  const connectWalletWithProvider = useCallback(
+    async (provider: 'Phantom' | 'Solflare') => {
+      let resolvedAddress = state.solanaAddress;
+      try {
+        const w = window as unknown as {
+          solana?: { isPhantom?: boolean; connect?: () => Promise<{ publicKey?: { toString: () => string } }> };
+          solflare?: { connect?: () => Promise<boolean>; publicKey?: { toString: () => string } };
+        };
+        if (provider === 'Phantom' && w.solana?.connect) {
+          const resp = await w.solana.connect();
+          if (resp?.publicKey) resolvedAddress = resp.publicKey.toString();
+        } else if (provider === 'Solflare' && w.solflare?.connect) {
+          await w.solflare.connect();
+          if (w.solflare.publicKey) resolvedAddress = w.solflare.publicKey.toString();
+        }
+      } catch {
+        // Fallback to verified session vault address in preview sandbox
+      }
+      setState((prev) => ({
+        ...prev,
+        solanaConnected: true,
+        walletProvider: provider,
+        solanaAddress: resolvedAddress,
+      }));
+      notify(
+        t(
+          `Wallet ${provider} connecté (${resolvedAddress.slice(0, 6)}...${resolvedAddress.slice(-4)}).`,
+          `${provider} wallet connected (${resolvedAddress.slice(0, 6)}...${resolvedAddress.slice(-4)}).`
+        ),
+        'success',
+        { category: 'system', title: `Solana · ${provider}` }
+      );
+    },
+    [notify, state.solanaAddress, t]
+  );
+
+  const addReferralInvite = useCallback(
+    (partnerName: string, tier: ReferralRecord['tier'] = 'KANICH BLACK') => {
+      const clean = partnerName.trim();
+      if (!clean) return;
+      const newRef: ReferralRecord = {
+        id: `ref-${Date.now()}`,
+        partnerName: clean,
+        tier,
+        code: 'MK-ADAMA-01',
+        volumeUsd: 0,
+        rewardKlt: 250,
+        status: 'Pending',
+        joinedAt: nowTimestamp().slice(0, 10),
+      };
+      setState((prev) => ({ ...prev, referrals: [newRef, ...prev.referrals] }));
+      notify(
+        t(`Invitation parrainage générée pour ${clean} (+250 $KLT à l’activation).`, `Referral invite created for ${clean}.`),
+        'success',
+        { category: 'transaction', title: t('Parrainage', 'Referral') }
+      );
+    },
+    [notify, t]
+  );
+
+  const dismissOnboarding = useCallback(() => {
+    setState((prev) => ({ ...prev, onboardingDismissed: true }));
+  }, []);
+
+  const reopenOnboarding = useCallback(() => {
+    setState((prev) => ({ ...prev, onboardingDismissed: false }));
+  }, []);
+
+  const showWeb3Wallet = state.featureWeb3 && state.web3ModeEnabled;
 
   const resetDemoState = useCallback(() => {
     setState(DEFAULT_STATE);
@@ -1265,10 +1552,33 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         unreadNotificationsCount,
         addPriceAlert,
         togglePriceAlert,
+        rearmPriceAlert,
         deletePriceAlert,
+        markPriceAlertsTriggered,
+        setKltSimulatedPrice,
+        autoPriceWatch,
+        setAutoPriceWatch,
         markAllNotificationsRead,
         clearNotificationsLog,
         triggerSampleMilestoneOrAlert,
+        workspaceMode: state.workspaceMode,
+        setWorkspaceMode,
+        featureWeb3: state.featureWeb3,
+        setFeatureWeb3,
+        web3ModeEnabled: state.web3ModeEnabled,
+        setWeb3ModeEnabled,
+        showWeb3Wallet,
+        customDomain: state.customDomain,
+        setCustomDomain,
+        kltMintAddress: state.kltMintAddress,
+        setKltMintAddress,
+        walletProvider: state.walletProvider,
+        connectWalletWithProvider,
+        referrals: state.referrals,
+        addReferralInvite,
+        onboardingDismissed: state.onboardingDismissed,
+        dismissOnboarding,
+        reopenOnboarding,
       }}
     >
       {children}

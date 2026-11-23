@@ -1,0 +1,4 @@
+﻿Principe,Implémentation
+1. Opt-in utilisateur,Un toggle « Mode Web3 » dans les préférences → colonne web3ModeEnabled (défaut false)
+2. Non-bloquant,Le module wallet est chargé en lazy/dynamic import → zéro impact sur le bundle principal des utilisateurs SaaS
+3. Kill-switch admin,Un flag global FEATURE_WEB3 → vous pouvez tout désactiver en prod pendant la bonding curve Pump.fun sans redéployer

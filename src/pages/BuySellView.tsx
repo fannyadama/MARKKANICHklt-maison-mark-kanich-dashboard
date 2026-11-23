@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CreditCard, ShieldCheck, Smartphone, Wallet } from 'lucide-react';
+import { ArrowLeft, CreditCard, Globe, ShieldCheck, Smartphone, Wallet } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
-import { FX_RATES } from '../data/kltSeedData';
+import { FX_RATES, PSP_COMPARISON_MATRIX } from '../data/kltSeedData';
 import { FiatCurrency } from '../types/klt';
 
 interface BuySellViewProps {
@@ -9,10 +9,12 @@ interface BuySellViewProps {
 }
 
 export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
-  const { t, kltPriceUsd, totalKltBalance, buyKlt, sellKlt, setRoute } = useKLTStore();
+  const { t, language, kltPriceUsd, totalKltBalance, buyKlt, sellKlt, setRoute } = useKLTStore();
   const [amountInput, setAmountInput] = useState(mode === 'buy' ? '500' : '1000');
   const [currency, setCurrency] = useState<FiatCurrency>('USD');
   const [paymentMethod, setPaymentMethod] = useState('Solana Pay / Phantom');
+  const [mobileOperator, setMobileOperator] = useState<'Wave CI' | 'Orange Money' | 'MTN MoMo'>('Wave CI');
+  const [mobilePhone, setMobilePhone] = useState('+225 07 15 94 60 56');
 
   const numericInput = parseFloat(amountInput) || 0;
   const kltEquivalent =
@@ -20,11 +22,22 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
   const fiatEquivalent =
     mode === 'buy' ? numericInput : numericInput * kltPriceUsd * FX_RATES[currency];
 
+  const isLocalFcfaPsp = paymentMethod.includes('Paystack') || paymentMethod.includes('CinetPay');
+
+  const handleSelectMethod = (methodId: string) => {
+    setPaymentMethod(methodId);
+    if ((methodId.includes('CinetPay') || methodId.includes('Paystack')) && currency !== 'XOF') {
+      setCurrency('XOF');
+      setAmountInput('150000');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (numericInput <= 0) return;
     if (mode === 'buy') {
-      buyKlt(numericInput, currency, paymentMethod);
+      const methodLabel = isLocalFcfaPsp ? `${paymentMethod} (${mobileOperator})` : paymentMethod;
+      buyKlt(numericInput, currency, methodLabel);
       setRoute('dashboard');
     } else {
       const ok = sellKlt(numericInput, currency);
@@ -33,7 +46,7 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <button
@@ -49,7 +62,10 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             {mode === 'buy'
-              ? t('Acquisition directe multi-devises avec règlement instantané.', 'Direct multi-currency acquisition with instant settlement.')
+              ? t(
+                  'Acquisition multi-devises : Solana Pay, Paddle (Carte), Paystack et CinetPay (Wave / Orange Money / MTN).',
+                  'Multi-currency acquisition: Solana Pay, Paddle Card, Paystack & CinetPay (Wave / Orange Money / MTN).'
+                )
               : t('Conversion de vos avoirs $KLT vers USD, EUR ou FCFA (XOF).', 'Convert your $KLT holdings to USD, EUR, or XOF.')}
           </p>
         </div>
@@ -89,8 +105,8 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">{t('Frais plateforme', 'Platform Fee')}</p>
-            <p className="text-xl font-bold text-emerald-400 font-mono-tabular mt-1">0.00%</p>
+            <p className="text-xs text-slate-400">{t('Canaux FCFA', 'FCFA Channels')}</p>
+            <p className="text-xl font-bold text-emerald-400 font-mono-tabular mt-1">Wave · OM · MTN</p>
           </div>
         </div>
 
@@ -144,15 +160,16 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
             ))}
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-4">
             <p className="text-xs font-medium text-slate-300">
-              {t('Méthode de paiement', 'Payment Method')}
+              {t('Méthode de paiement & PSP Local', 'Payment Method & Local PSP')}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                { id: 'Solana Pay / Phantom', icon: Wallet, sub: 'Instantané · 0 frais' },
-                { id: 'Carte Visa / Mastercard', icon: CreditCard, sub: '3D Secure · Mondial' },
-                { id: 'Wave / Orange Money CI', icon: Smartphone, sub: 'Abidjan · XOF / FCFA' },
+                { id: 'Solana Pay / Phantom', icon: Wallet, sub: 'Solana SPL · 0 frais' },
+                { id: 'Paddle (Carte Visa / MC)', icon: Globe, sub: 'USD / EUR · Global' },
+                { id: 'Paystack (Wave / OM / Carte)', icon: CreditCard, sub: 'XOF / USD · J+1' },
+                { id: 'CinetPay (Wave / OM / MTN)', icon: Smartphone, sub: '100% UEMOA FCFA' },
               ].map((m) => {
                 const Icon = m.icon;
                 const active = paymentMethod === m.id;
@@ -160,7 +177,7 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => setPaymentMethod(m.id)}
+                    onClick={() => handleSelectMethod(m.id)}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       active
                         ? 'border-amber-500 bg-amber-500/10 text-white'
@@ -174,6 +191,38 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
                 );
               })}
             </div>
+
+            {isLocalFcfaPsp && (
+              <div className="p-4 rounded-lg bg-slate-900/90 border border-amber-500/30 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="momo-operator" className="block text-[11px] text-slate-400 mb-1.5">
+                    {t('Opérateur Mobile Money (Côte d’Ivoire / UEMOA)', 'Mobile Money Operator')}
+                  </label>
+                  <select
+                    id="momo-operator"
+                    value={mobileOperator}
+                    onChange={(e) => setMobileOperator(e.target.value as 'Wave CI' | 'Orange Money' | 'MTN MoMo')}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="Wave CI">Wave Côte d’Ivoire (0% sur-frais)</option>
+                    <option value="Orange Money">Orange Money CI</option>
+                    <option value="MTN MoMo">MTN MoMo CI</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="momo-phone" className="block text-[11px] text-slate-400 mb-1.5">
+                    {t('Numéro Mobile Money', 'Mobile Money Phone Number')}
+                  </label>
+                  <input
+                    id="momo-phone"
+                    type="tel"
+                    value={mobilePhone}
+                    onChange={(e) => setMobilePhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 font-mono-tabular text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -193,10 +242,17 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-4 pt-2">
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
           <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            {t('Protection AES-256-GCM & Multi-Sig', 'AES-256-GCM & Multi-Sig Protected')}
+            {t('Protection AES-256-GCM · Politique', 'AES-256-GCM Protected ·')}
+            <button
+              type="button"
+              onClick={() => setRoute('remboursement')}
+              className="text-amber-400 hover:text-amber-300 underline underline-offset-2"
+            >
+              /remboursement
+            </button>
           </span>
 
           <button
@@ -212,6 +268,45 @@ export const BuySellView: React.FC<BuySellViewProps> = ({ mode }) => {
           </button>
         </div>
       </form>
+
+      {/* PSP Comparison Matrix (Paddle vs Paystack vs CinetPay) */}
+      <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-white">
+            {t('Comparatif Prestataires : Paddle vs Paystack vs CinetPay', 'PSP Comparison: Paddle vs Paystack vs CinetPay')}
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {t(
+              'Matrice de décision pour les paiements SaaS internationaux et FCFA Wave / Orange Money.',
+              'Decision matrix for international SaaS billing and West African FCFA Mobile Money.'
+            )}
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-slate-800 text-slate-400">
+                <th className="py-2.5 pr-4">{t('Critère', 'Criterion')}</th>
+                <th className="py-2.5 pr-4 text-white">Paddle (International)</th>
+                <th className="py-2.5 pr-4 text-amber-400">Paystack (Mixte)</th>
+                <th className="py-2.5 text-emerald-400">CinetPay (UEMOA)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/70">
+              {PSP_COMPARISON_MATRIX.map((row) => (
+                <tr key={row.criterionEn} className="hover:bg-slate-900/40">
+                  <td className="py-2.5 pr-4 font-medium text-slate-300">
+                    {language === 'fr' ? row.criterionFr : row.criterionEn}
+                  </td>
+                  <td className="py-2.5 pr-4 text-slate-300">{row.paddle}</td>
+                  <td className="py-2.5 pr-4 text-slate-200">{row.paystack}</td>
+                  <td className="py-2.5 text-slate-200">{row.cinetpay}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

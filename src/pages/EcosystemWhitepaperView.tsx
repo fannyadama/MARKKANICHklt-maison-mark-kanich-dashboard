@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
 import { BrandMark } from '../components/BrandMark';
+import { SolscanTracker } from '../components/SolscanTracker';
 import {
   ACCESS_TIERS,
   ECOSYSTEM_PILLARS,
@@ -602,6 +603,12 @@ export const PresentationView: React.FC<PresentationViewProps> = ({ initialSecti
             </div>
           </div>
         </div>
+
+        {/* Widget SolscanTracker : suivi temps réel contrat $KLT, burn et locks Solana */}
+        <SolscanTracker
+          contractAddress={contractAddress}
+          onContractChange={handleContractChange}
+        />
       </section>
 
       {/* SECTION 3 : OÙ ACQUÉRIR LE $KLT */}
@@ -949,9 +956,18 @@ export const PresentationView: React.FC<PresentationViewProps> = ({ initialSecti
         </div>
 
         <div className="pt-5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
-          <p>
-            Le $KLT est un token utilitaire. Les crypto-actifs comportent des risques. DYOR.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <p>
+              Le $KLT est un token utilitaire. Les crypto-actifs comportent des risques. DYOR.
+            </p>
+            <button
+              type="button"
+              onClick={() => setRoute('remboursement')}
+              className="text-amber-400 hover:text-amber-300 underline underline-offset-2 whitespace-nowrap"
+            >
+              {t('Politique de Remboursement (/remboursement)', 'Refund Policy (/remboursement)')}
+            </button>
+          </div>
           <p className="text-slate-300 font-medium whitespace-nowrap">
             © 2026 Maison Mark Kanich / KIIS Global
           </p>

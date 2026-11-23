@@ -3,20 +3,38 @@ import {
   AlertTriangle,
   Check,
   Copy,
+  Globe,
   KeyRound,
   RotateCcw,
   ShieldCheck,
+  Sparkles,
   Terminal,
   Trash2,
 } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
-import { SUBSCRIPTION_PLANS } from '../data/kltSeedData';
+import { FX_RATES, PSP_COMPARISON_MATRIX, SUBSCRIPTION_PLANS } from '../data/kltSeedData';
 import { FiatCurrency } from '../types/klt';
 
 export const SettingsProfileView: React.FC = () => {
-  const { t, user, updateUserProfile, setUserRole, resetDemoState, setRoute } = useKLTStore();
+  const {
+    t,
+    user,
+    updateUserProfile,
+    setUserRole,
+    featureWeb3,
+    setFeatureWeb3,
+    web3ModeEnabled,
+    setWeb3ModeEnabled,
+    customDomain,
+    setCustomDomain,
+    reopenOnboarding,
+    resetDemoState,
+    setRoute,
+  } = useKLTStore();
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
+  const [domainInput, setDomainInput] = useState(customDomain);
+  const [showOpenId, setShowOpenId] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +48,10 @@ export const SettingsProfileView: React.FC = () => {
           {t('Paramètres & Profil du Compte', 'Account Profile & Settings')}
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          {t('Identité Maison Mark Kanich, préférences de devise, notifications et rôle RBAC.', 'Maison Mark Kanich identity, currency preferences, notifications, and RBAC role.')}
+          {t(
+            'Identité Maison Mark Kanich, domaine custom Paddle, isolation Web3 et rôle RBAC.',
+            'Maison Mark Kanich identity, Paddle custom domain, Web3 opt-in, and RBAC role.'
+          )}
         </p>
       </div>
 
@@ -82,10 +103,77 @@ export const SettingsProfileView: React.FC = () => {
               </select>
             </div>
             <div>
-              <p className="text-slate-400 mb-1.5">{t('Méthode & OpenID (CSV)', 'Auth & OpenID (CSV)')}</p>
-              <div className="px-3.5 py-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono-tabular text-slate-300 truncate">
-                {user.loginMethod} · {user.openId}
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-slate-400">{t('Méthode & OpenID (masqué)', 'Auth & OpenID (masked)')}</p>
+                <button
+                  type="button"
+                  onClick={() => setShowOpenId((v) => !v)}
+                  className="text-amber-400 hover:text-amber-300 text-[11px]"
+                >
+                  {showOpenId ? t('Masquer', 'Hide') : t('Révéler', 'Reveal')}
+                </button>
               </div>
+              <div className="px-3.5 py-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono-tabular text-slate-300 truncate">
+                {user.loginMethod} · {showOpenId ? user.openId : '••••••••••••••••••••'}
+              </div>
+            </div>
+          </div>
+
+          {/* Domain & Web3 Controls */}
+          <div className="pt-4 border-t border-slate-800 space-y-4">
+            <div>
+              <label htmlFor="custom-domain-prof" className="block text-xs text-slate-400 mb-1.5">
+                {t('Domaine Custom Production (Validation Paddle)', 'Production Custom Domain (Paddle)')}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="custom-domain-prof"
+                  type="text"
+                  value={domainInput}
+                  onChange={(e) => setDomainInput(e.target.value)}
+                  className="flex-1 px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-700 font-mono-tabular text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCustomDomain(domainInput)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-white whitespace-nowrap"
+                >
+                  <Globe className="w-3.5 h-3.5 text-amber-400" />
+                  {t('Appliquer', 'Apply')}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <button
+                type="button"
+                onClick={() => setWeb3ModeEnabled(!web3ModeEnabled)}
+                className="p-3 rounded-lg border border-slate-800 bg-slate-900/70 hover:border-amber-500/40 flex items-center justify-between text-left"
+              >
+                <div>
+                  <p className="font-semibold text-white">{t('Opt-In Wallet Web3 ($KLT)', 'Web3 Wallet Opt-In ($KLT)')}</p>
+                  <p className="text-[11px] text-slate-400">{t('Phantom, Solflare & Staking', 'Phantom, Solflare & Staking')}</p>
+                </div>
+                <span className={web3ModeEnabled ? 'text-emerald-400 font-semibold' : 'text-slate-400'}>
+                  {web3ModeEnabled ? 'ON' : 'OFF'}
+                </span>
+              </button>
+
+              {user.role === 'admin' && (
+                <button
+                  type="button"
+                  onClick={() => setFeatureWeb3(!featureWeb3)}
+                  className="p-3 rounded-lg border border-slate-800 bg-slate-900/70 hover:border-amber-500/40 flex items-center justify-between text-left"
+                >
+                  <div>
+                    <p className="font-semibold text-white">FEATURE_WEB3 (Kill-Switch)</p>
+                    <p className="text-[11px] text-slate-400">{t('Flag global Stipulor vs KLT', 'Global Stipulor vs KLT flag')}</p>
+                  </div>
+                  <span className={featureWeb3 ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
+                    {featureWeb3 ? 'ON' : 'OFF'}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -145,6 +233,17 @@ export const SettingsProfileView: React.FC = () => {
               className="w-full text-left px-3 py-2 rounded-lg border border-slate-800 hover:bg-slate-900 text-xs text-slate-200"
             >
               {t('Historique des connexions →', 'Login History →')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                reopenOnboarding();
+                setRoute('dashboard');
+              }}
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-medium"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              {t('Relancer l’onboarding Pingouin', 'Relaunch Penguin Onboarding')}
             </button>
             <button
               type="button"
@@ -445,44 +544,88 @@ export const DevnetOpsView: React.FC = () => {
 };
 
 export const SubscriptionCheckoutView: React.FC = () => {
-  const { t, language, subscriptionPlan, billingCycle, setSubscription } = useKLTStore();
+  const { t, language, subscriptionPlan, billingCycle, setSubscription, setRoute, notify } = useKLTStore();
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>(billingCycle);
+  const [psp, setPsp] = useState<'paddle' | 'paystack' | 'cinetpay'>('paddle');
+
+  const handleCheckout = (planId: 'free' | 'pro' | 'vip') => {
+    setSubscription(planId, cycle);
+    if (planId !== 'free') {
+      const pspLabel =
+        psp === 'paddle'
+          ? 'Paddle (USD/EUR)'
+          : psp === 'paystack'
+          ? 'Paystack (FCFA / Wave / OM / Carte)'
+          : 'CinetPay (Wave / Orange Money / MTN)';
+      notify(
+        t(`Checkout ${pspLabel} initialisé pour le plan ${planId.toUpperCase()}.`, `${pspLabel} checkout initialized.`),
+        'success'
+      );
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="text-center space-y-3">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">
-          {t('Formules d’Accès Maison Mark Kanich', 'Maison Mark Kanich Access Plans')}
+          {t('Formules Stipulor SaaS & Accès Privilège', 'Stipulor SaaS Plans & Privilege Access')}
         </h1>
         <p className="text-sm text-slate-400">
-          {t('Débloquez le staking optimisé à 15% APY, la Carte Visa Virtuelle et les outils institutionnels.', 'Unlock boosted 15% APY staking, Virtual Visa Card, and institutional analytics.')}
+          {t(
+            'Paiement international via Paddle ou local en FCFA via Paystack / CinetPay (Wave, Orange Money, MTN MoMo).',
+            'International billing via Paddle or local FCFA via Paystack / CinetPay (Wave, Orange Money, MTN MoMo).'
+          )}
         </p>
 
-        <div className="inline-flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg">
-          <button
-            type="button"
-            onClick={() => setCycle('monthly')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md ${
-              cycle === 'monthly' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            {t('Mensuel', 'Monthly')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCycle('yearly')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md ${
-              cycle === 'yearly' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            {t('Annuel (-20%)', 'Yearly (-20%)')}
-          </button>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="inline-flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setCycle('monthly')}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-md ${
+                cycle === 'monthly' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {t('Mensuel', 'Monthly')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCycle('yearly')}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-md ${
+                cycle === 'yearly' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {t('Annuel (-20%)', 'Yearly (-20%)')}
+            </button>
+          </div>
+
+          <div className="inline-flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg">
+            {(
+              [
+                { id: 'paddle', label: 'Paddle (USD)' },
+                { id: 'paystack', label: 'Paystack (FCFA/Card)' },
+                { id: 'cinetpay', label: 'CinetPay (Wave/OM)' },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setPsp(opt.id)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
+                  psp === opt.id ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {SUBSCRIPTION_PLANS.map((plan) => {
           const price = cycle === 'monthly' ? plan.monthlyPriceUsd : plan.yearlyPriceUsd;
+          const priceXof = Math.round(price * FX_RATES.XOF);
           const isActive = subscriptionPlan === plan.id && billingCycle === cycle;
           return (
             <div
@@ -505,7 +648,7 @@ export const SubscriptionCheckoutView: React.FC = () => {
                 </p>
 
                 <p className="text-3xl font-bold text-white font-mono-tabular mt-5">
-                  ${price}
+                  {psp === 'paddle' ? `$${price}` : `${priceXof.toLocaleString('fr-FR')} FCFA`}
                   <span className="text-xs font-normal text-slate-400">
                     /{cycle === 'monthly' ? t('mois', 'mo') : t('an', 'yr')}
                   </span>
@@ -523,7 +666,7 @@ export const SubscriptionCheckoutView: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setSubscription(plan.id, cycle)}
+                onClick={() => handleCheckout(plan.id)}
                 disabled={isActive}
                 className={`mt-6 w-full py-2.5 rounded-lg text-xs font-semibold transition-colors ${
                   isActive
@@ -533,11 +676,60 @@ export const SubscriptionCheckoutView: React.FC = () => {
                     : 'border border-slate-700 bg-slate-900 hover:bg-slate-800 text-white'
                 }`}
               >
-                {isActive ? t('Plan Actif', 'Current Plan') : t('Sélectionner ce plan', 'Select Plan')}
+                {isActive
+                  ? t('Plan Actif', 'Current Plan')
+                  : psp === 'paddle'
+                  ? t('Payer avec Paddle', 'Checkout with Paddle')
+                  : psp === 'paystack'
+                  ? t('Payer via Paystack (FCFA)', 'Pay via Paystack (FCFA)')
+                  : t('Payer via CinetPay (Wave/OM)', 'Pay via CinetPay (Wave/OM)')}
               </button>
             </div>
           );
         })}
+      </div>
+
+      {/* Distinct Refund Policy Notice required for Paddle */}
+      <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4 text-xs">
+        <p className="text-slate-300">
+          {t(
+            'Conformité Paddle : droit de rétractation de 14 jours disponible sur une page dédiée distincte des CGV.',
+            'Paddle compliance: 14-day withdrawal policy hosted on a dedicated standalone page.'
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={() => setRoute('remboursement')}
+          className="px-3.5 py-2 rounded-lg border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 font-semibold whitespace-nowrap"
+        >
+          {t('Consulter /remboursement →', 'View /remboursement →')}
+        </button>
+      </div>
+
+      {/* PSP Comparison Table */}
+      <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 overflow-x-auto">
+        <table className="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr className="border-b border-slate-800 text-slate-400">
+              <th className="py-2 pr-4">{t('Critère PSP', 'PSP Criterion')}</th>
+              <th className="py-2 pr-4 text-white">Paddle</th>
+              <th className="py-2 pr-4 text-amber-400">Paystack</th>
+              <th className="py-2 text-emerald-400">CinetPay</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/70">
+            {PSP_COMPARISON_MATRIX.map((row) => (
+              <tr key={row.criterionEn}>
+                <td className="py-2.5 pr-4 font-medium text-slate-300">
+                  {language === 'fr' ? row.criterionFr : row.criterionEn}
+                </td>
+                <td className="py-2.5 pr-4 text-slate-300">{row.paddle}</td>
+                <td className="py-2.5 pr-4 text-slate-200">{row.paystack}</td>
+                <td className="py-2.5 text-slate-200">{row.cinetpay}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

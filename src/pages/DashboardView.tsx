@@ -3,13 +3,17 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  Building2,
   Coins,
   Eye,
   EyeOff,
+  FileCheck2,
+  Globe,
   RefreshCw,
   ShieldCheck,
   Terminal,
   TrendingUp,
+  UserPlus,
   Wallet,
 } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
@@ -17,7 +21,10 @@ import { BrandMark } from '../components/BrandMark';
 import { CryptoComparisonChart, KLTPriceChart } from '../components/Charts';
 import { KLTRechartsPerformance } from '../components/KLTRechartsPerformance';
 import { StakingCalculator } from '../components/StakingCalculator';
-import { FX_RATES } from '../data/kltSeedData';
+import { PriceAlertConfigSection } from '../components/PriceAlertConfigSection';
+import { PenguinOnboarding } from '../components/PenguinOnboarding';
+import { SolscanTracker } from '../components/SolscanTracker';
+import { EIGHT_PILLARS_REPORTING, FX_RATES } from '../data/kltSeedData';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -35,6 +42,12 @@ export const DashboardView: React.FC = () => {
     toggleHideBalances,
     formatFiat,
     setRoute,
+    workspaceMode,
+    setWorkspaceMode,
+    showWeb3Wallet,
+    customDomain,
+    referrals,
+    subscriptionPlan,
   } = useKLTStore();
 
   const kltAsset = assets.find((a) => a.symbol === 'KLT') || assets[0];
@@ -43,8 +56,15 @@ export const DashboardView: React.FC = () => {
   const totalXof = totalPortfolioUsd * FX_RATES.XOF;
   const isUp24h = kltAsset.change24h >= 0;
 
+  const totalEightPillarsRevenue = EIGHT_PILLARS_REPORTING.reduce((s, p) => s + p.revenueUsd, 0);
+  const showKltModules = showWeb3Wallet && workspaceMode !== 'stipulor';
+  const showStipulorModules = workspaceMode !== 'klt' || !showWeb3Wallet;
+
   return (
     <div className="space-y-6">
+      {/* Inline Penguin Mascot Onboarding (non-blocking) */}
+      <PenguinOnboarding />
+
       {/* Welcome & Role Context Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -54,7 +74,7 @@ export const DashboardView: React.FC = () => {
               {t(`Bienvenue, ${user.name}`, `Welcome back, ${user.name}`)}
             </h1>
             <p className="text-sm text-slate-400 mt-0.5">
-              {t('Maison Mark Kanich · Écosystème $KLT sur Solana', 'Maison Mark Kanich · $KLT Ecosystem on Solana')}
+              {t('Maison Mark Kanich · Stipulor SaaS & $KLT Solana', 'Maison Mark Kanich · Stipulor SaaS & $KLT Solana')}
               <span aria-hidden="true"> · </span>
               <span className="text-amber-400 font-medium">
                 {user.role === 'admin' ? t('Administrateur', 'Administrator') : t('Trader Standard', 'Standard Trader')}
@@ -63,7 +83,29 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="inline-flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg">
+            {(
+              [
+                { id: 'all', fr: 'Unifié', en: 'Unified' },
+                { id: 'stipulor', fr: 'Stipulor SaaS', en: 'Stipulor SaaS' },
+                { id: 'klt', fr: '$KLT Web3', en: '$KLT Web3' },
+              ] as const
+            ).map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setWorkspaceMode(mode.id)}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
+                  workspaceMode === mode.id
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t(mode.fr, mode.en)}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={toggleHideBalances}
@@ -82,6 +124,83 @@ export const DashboardView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Stipulor SaaS & 8 Pillars Governance Summary (shown in Unified & Stipulor modes) */}
+      {showStipulorModules && (
+        <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-amber-400">
+                STIPULOR SAAS · {customDomain}
+              </p>
+              <h2 className="text-base font-semibold text-white mt-0.5">
+                {t(
+                  'Pilotage Abonnements, PSP FCFA, Parrainage & 8 Piliers KIIS Global',
+                  'Subscriptions, FCFA PSPs, Referrals & 8 KIIS Global Pillars'
+                )}
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setRoute('pillars-reporting')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:border-amber-500 text-xs font-medium text-slate-200 whitespace-nowrap"
+              >
+                <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                {t('8 Piliers Reporting', '8 Pillars Reporting')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoute('referral')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:border-amber-500 text-xs font-medium text-slate-200 whitespace-nowrap"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                {t('Parrainage', 'Referrals')} ({referrals.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoute('action-plan')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 whitespace-nowrap"
+              >
+                <FileCheck2 className="w-3.5 h-3.5" />
+                {t('Plan P0–P2 & Conformité', 'P0–P2 Action Plan')}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800">
+              <p className="text-slate-400">{t('Revenu Consolidé (8 Piliers)', 'Consolidated Revenue (8 Pillars)')}</p>
+              <p className="text-lg font-bold text-white font-mono-tabular mt-1">
+                ${(totalEightPillarsRevenue / 1e6).toFixed(2)}M
+              </p>
+            </div>
+            <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800">
+              <p className="text-slate-400">{t('Passerelles PSP Actives', 'Active PSP Gateways')}</p>
+              <p className="text-lg font-bold text-emerald-400 font-mono-tabular mt-1">
+                Paddle · Paystack · CinetPay
+              </p>
+            </div>
+            <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800">
+              <p className="text-slate-400">{t('Plan Stipulor Actif', 'Active Stipulor Plan')}</p>
+              <p className="text-lg font-bold text-amber-400 font-mono-tabular mt-1 uppercase">
+                {subscriptionPlan}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRoute('remboursement')}
+              className="p-3.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-left transition-colors"
+            >
+              <p className="text-slate-400 flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-amber-400" />
+                {t('Page Paddle Dédiée', 'Dedicated Paddle Page')}
+              </p>
+              <p className="text-sm font-bold text-white font-mono-tabular mt-1">/remboursement →</p>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Grid: Portfolio Value (2 cols) + Quick Actions (1 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -258,78 +377,110 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* KLT Price Widget + Chart */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-white">
-                {t('Indice $KLT Solana', '$KLT Solana Index')}
-              </h3>
-              <span className="text-xs text-emerald-400 font-medium">SPL · Pump.fun</span>
+      {showKltModules && (
+        <>
+          {/* KLT Price Widget + Chart */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-white">
+                    {t('Indice $KLT Solana', '$KLT Solana Index')}
+                  </h3>
+                  <span className="text-xs text-emerald-400 font-medium">SPL · Pump.fun</span>
+                </div>
+                <p className="text-3xl font-bold text-white font-mono-tabular">${kltAsset.priceUsd.toFixed(4)}</p>
+                <p className={`text-xs font-mono-tabular mt-1 ${isUp24h ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {isUp24h ? '+' : ''}
+                  {kltAsset.change24h.toFixed(2)}% {t('sur 24h', '24h')}
+                </p>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3 pt-4 border-t border-slate-800">
+                <div>
+                  <p className="text-xs text-slate-400">{t('Plus haut 24h', '24h High')}</p>
+                  <p className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
+                    ${kltAsset.high24h.toFixed(4)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">{t('Plus bas 24h', '24h Low')}</p>
+                  <p className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
+                    ${kltAsset.low24h.toFixed(4)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">{t('Volume 24h', '24h Volume')}</p>
+                  <p className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
+                    ${(kltAsset.volume24h / 1e6).toFixed(2)}M
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">{t('Capitalisation (FDV)', 'Market Cap')}</p>
+                  <p className="text-sm font-semibold text-amber-400 font-mono-tabular mt-0.5">
+                    ${(kltAsset.marketCap / 1e6).toFixed(2)}M
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                <span className="inline-flex items-center gap-1.5 text-slate-300">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  {t('Mint & Freeze Révoqués', 'Mint & Freeze Revoked')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRoute('whitepaper')}
+                  className="text-amber-400 hover:text-amber-300 font-medium whitespace-nowrap"
+                >
+                  {t('Livre Blanc →', 'Whitepaper →')}
+                </button>
+              </div>
             </div>
-            <p className="text-3xl font-bold text-white font-mono-tabular">${kltAsset.priceUsd.toFixed(4)}</p>
-            <p className={`text-xs font-mono-tabular mt-1 ${isUp24h ? 'text-emerald-400' : 'text-red-400'}`}>
-              {isUp24h ? '+' : ''}
-              {kltAsset.change24h.toFixed(2)}% {t('sur 24h', '24h')}
-            </p>
+
+            <div className="xl:col-span-2">
+              <KLTPriceChart />
+            </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3 pt-4 border-t border-slate-800">
-            <div>
-              <p className="text-xs text-slate-400">{t('Plus haut 24h', '24h High')}</p>
-              <p className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
-                ${kltAsset.high24h.toFixed(4)}
-              </p>
+          {/* 30-Day Recharts Performance: $KLT Token Price & User Holdings */}
+          <KLTRechartsPerformance />
+
+          {/* Crypto Comparison Chart */}
+          <CryptoComparisonChart />
+
+          {/* Interactive $KLT Staking Calculator */}
+          <StakingCalculator />
+
+          {/* Custom $KLT Price Alerts Configuration */}
+          <PriceAlertConfigSection />
+
+          {/* Sécurité & Preuves — SolscanTracker Iframe & On-Chain Burn/Locks */}
+          <section id="dashboard-securite-preuves" className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 sm:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-amber-400">
+                  {t('SÉCURITÉ & PREUVES', 'SECURITY & PROOFS')}
+                </p>
+                <h2 className="text-lg font-bold text-white mt-0.5">
+                  {t(
+                    'Sécurité & Preuves On-Chain Solana (Solscan Tracker)',
+                    'Solana On-Chain Security & Proofs (Solscan Tracker)'
+                  )}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRoute('presentation')}
+                className="text-xs font-medium text-amber-400 hover:text-amber-300 whitespace-nowrap"
+              >
+                {t('Voir page Maison complète →', 'View full Maison page →')}
+              </button>
             </div>
-            <div>
-              <p className="text-xs text-slate-400">{t('Plus bas 24h', '24h Low')}</p>
-              <p className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
-                ${kltAsset.low24h.toFixed(4)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400">{t('Volume 24h', '24h Volume')}</p>
-              <p className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
-                ${(kltAsset.volume24h / 1e6).toFixed(2)}M
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400">{t('Capitalisation (FDV)', 'Market Cap')}</p>
-              <p className="text-sm font-semibold text-amber-400 font-mono-tabular mt-0.5">
-                ${(kltAsset.marketCap / 1e6).toFixed(2)}M
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <span className="inline-flex items-center gap-1.5 text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              {t('Mint & Freeze Révoqués', 'Mint & Freeze Revoked')}
-            </span>
-            <button
-              type="button"
-              onClick={() => setRoute('whitepaper')}
-              className="text-amber-400 hover:text-amber-300 font-medium whitespace-nowrap"
-            >
-              {t('Livre Blanc →', 'Whitepaper →')}
-            </button>
-          </div>
-        </div>
-
-        <div className="xl:col-span-2">
-          <KLTPriceChart />
-        </div>
-      </div>
-
-      {/* 30-Day Recharts Performance: $KLT Token Price & User Holdings */}
-      <KLTRechartsPerformance />
-
-      {/* Crypto Comparison Chart */}
-      <CryptoComparisonChart />
-
-      {/* Interactive $KLT Staking Calculator */}
-      <StakingCalculator />
+            <SolscanTracker />
+          </section>
+        </>
+      )}
 
       {/* Holdings Allocation & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

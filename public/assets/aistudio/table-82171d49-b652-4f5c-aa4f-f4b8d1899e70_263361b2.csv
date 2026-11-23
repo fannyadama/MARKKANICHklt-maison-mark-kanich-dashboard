@@ -1,0 +1,9 @@
+﻿Critère,Paddle (Actuel),Paystack (Recommandé B2C/B2B),CinetPay (Recommandé 100% Local)
+Frais de transaction,"5% + 0,50 $","~3,9% + frais fixes (selon carte/mobile)","~3,5% à 5% (selon canal Mobile Money)"
+Devise de collecte,"USD, EUR, GBP",XOF (FCFA)", USD, EUR, NGN",XOF (FCFA) uniquement
+Moyens de paiement,Carte bancaire internationale,Carte + Wave + Orange Money + MTN MoMo,Wave + Orange Money + MTN MoMo + Carte
+Délai de versement (Payout),Mensuel (avant le 15 du mois),J+1 à J+2 ouvrés (très rapide),Instantané ou J+1 vers compte bancaire local
+Frais de retrait,~15 $ (SWIFT) + frais banque,Faibles (virement local UEMOA),Faibles (virement local UEMOA)
+Seuil minimum de payout,100 $ / 100 €,Aucun seuil bloquant majeur,Très faible (adapté aux petits montants)
+Conformité / KYC,Très strict (Merchant of Record),Strict (KYC entreprise requis),Standard (KYC entreprise ivoirien)
+Idéal pour...,Vente SaaS B2B internationale,Votre cible mixte (Carte + Mobile Money),Votre cible 100% Afrique de l'Ouest

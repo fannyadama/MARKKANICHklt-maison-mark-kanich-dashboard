@@ -1,16 +1,50 @@
 import React, { useState } from 'react';
-import { RefreshCw, Search, TrendingUp, Users } from 'lucide-react';
+import { Download, RefreshCw, Search, ShieldCheck, TrendingUp, Users } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
-import { CSV_USERS_REGISTRY } from '../data/kltSeedData';
+import { CSV_USERS_REGISTRY, PURGED_TEST_ACCOUNTS_COUNT } from '../data/kltSeedData';
 
 interface LiveStatsRatesViewProps {
   initialTab?: 'stats' | 'rates';
 }
 
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
 export const LiveStatsRatesView: React.FC<LiveStatsRatesViewProps> = ({ initialTab = 'stats' }) => {
-  const { t, assets, refreshMarketPrices, transactions, setRoute } = useKLTStore();
+  const { t, assets, refreshMarketPrices, transactions, setRoute, notify } = useKLTStore();
   const [tab, setTab] = useState<'stats' | 'rates'>(initialTab);
   const [search, setSearch] = useState('');
+
+  const productionUsers = CSV_USERS_REGISTRY.filter((u) => !u.email.toLowerCase().endsWith('@test.com'));
+
+  const exportAnonymizedUsersCsv = () => {
+    const headers = ['id', 'name', 'role', 'createdAt', 'lastSignedIn'];
+    const rows = productionUsers.map((u) => [
+      u.id,
+      `"${u.name.replace(/"/g, '""')}"`,
+      u.role,
+      u.createdAt,
+      u.lastSignedIn,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `klt-users-anonymized-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify(
+      t(
+        'Export CSV anonymisé généré (sans openId, sans email, 0 compte @test.com).',
+        'Anonymized CSV export downloaded (no openId, no email, 0 @test.com).'
+      ),
+      'success'
+    );
+  };
 
   const filteredAssets = assets.filter(
     (a) =>
@@ -28,7 +62,7 @@ export const LiveStatsRatesView: React.FC<LiveStatsRatesViewProps> = ({ initialT
               : t('Cours des Cryptomonnaies', 'Cryptocurrency Market Rates')}
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            {t('Indicateurs réseau en temps réel, annuaire CSV et cotations multi-actifs.', 'Real-time platform metrics, CSV user directory, and market quotes.')}
+            {t('Indicateurs réseau en temps réel, annuaire anonymisé et cotations multi-actifs.', 'Real-time platform metrics, anonymized user directory, and market quotes.')}
           </p>
         </div>
 
@@ -70,7 +104,7 @@ export const LiveStatsRatesView: React.FC<LiveStatsRatesViewProps> = ({ initialT
             <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5">
               <p className="text-xs text-slate-400">{t('Abonnés & Comptes Vérifiés', 'Verified Accounts')}</p>
               <p className="text-3xl font-bold text-white font-mono-tabular mt-2">
-                {(4820 + CSV_USERS_REGISTRY.length).toLocaleString()}
+                {(4820 + productionUsers.length).toLocaleString()}
               </p>
               <p className="text-xs text-emerald-400 mt-1">+18.4% {t('ce mois', 'this month')}</p>
             </div>
@@ -91,23 +125,41 @@ export const LiveStatsRatesView: React.FC<LiveStatsRatesViewProps> = ({ initialT
             </div>
           </div>
 
-          {/* User & Referral Registry sourced from attached CSV files */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between gap-4 mb-4">
+          {/* User & Referral Registry (P0 purged & anonymized CSV export) */}
+          <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2.5">
-                <Users className="w-5 h-5 text-amber-400" />
+                <Users className="w-5 h-5 text-amber-400 shrink-0" />
                 <div>
                   <h2 className="text-base font-semibold text-white">
-                    {t('Annuaire Utilisateurs & Parrainages (Export CSV)', 'Users & Referral Registry (CSV Import)')}
+                    {t('Annuaire Production & Export Anonymisé', 'Production Registry & Anonymized Export')}
                   </h2>
                   <p className="text-xs text-slate-400">
-                    {t('Comptes importés depuis vos exports CSV officiels (users_20261120)', 'Accounts imported from your official CSV exports (users_20261120)')}
+                    {t(
+                      'Conforme RGPD/P0 : openId et emails exclus de l’export CSV · comptes @test.com purgés.',
+                      'GDPR/P0 compliant: openId & emails excluded from CSV export · @test.com purged.'
+                    )}
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-mono-tabular text-slate-400">
-                {CSV_USERS_REGISTRY.length} {t('enregistrements', 'records')}
-              </span>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 text-xs font-mono-tabular text-emerald-400">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  {t(
+                    `0 compte @test.com · ${PURGED_TEST_ACCOUNTS_COUNT} purgés`,
+                    `0 @test.com · ${PURGED_TEST_ACCOUNTS_COUNT} purged`
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={exportAnonymizedUsersCsv}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {t('Exporter CSV Anonymisé (Sans PII)', 'Export Anonymized CSV (No PII)')}
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -116,7 +168,7 @@ export const LiveStatsRatesView: React.FC<LiveStatsRatesViewProps> = ({ initialT
                   <tr className="border-b border-slate-800 text-slate-400">
                     <th className="py-2.5 pr-4">ID</th>
                     <th className="py-2.5 pr-4">{t('Nom', 'Name')}</th>
-                    <th className="py-2.5 pr-4">Email</th>
+                    <th className="py-2.5 pr-4">{t('Email (masqué)', 'Email (masked)')}</th>
                     <th className="py-2.5 pr-4">{t('Méthode', 'Login')}</th>
                     <th className="py-2.5 pr-4">{t('Rôle', 'Role')}</th>
                     <th className="py-2.5 pr-4">{t('Catégorie', 'Category')}</th>
@@ -124,11 +176,11 @@ export const LiveStatsRatesView: React.FC<LiveStatsRatesViewProps> = ({ initialT
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/70">
-                  {CSV_USERS_REGISTRY.map((u) => (
+                  {productionUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-900/50">
                       <td className="py-3 pr-4 font-mono-tabular text-slate-400">{u.id}</td>
                       <td className="py-3 pr-4 font-semibold text-white">{u.name}</td>
-                      <td className="py-3 pr-4 text-slate-300 font-mono-tabular">{u.email}</td>
+                      <td className="py-3 pr-4 text-slate-400 font-mono-tabular">{maskEmail(u.email)}</td>
                       <td className="py-3 pr-4 text-slate-400">{u.loginMethod}</td>
                       <td className="py-3 pr-4">
                         <span className={u.role === 'admin' ? 'text-amber-400 font-semibold' : 'text-slate-300'}>

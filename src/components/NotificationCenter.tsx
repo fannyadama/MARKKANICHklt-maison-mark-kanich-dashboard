@@ -130,6 +130,7 @@ export const NotificationBellButton: React.FC = () => {
     priceAlerts,
     addPriceAlert,
     togglePriceAlert,
+    rearmPriceAlert,
     deletePriceAlert,
     markAllNotificationsRead,
     clearNotificationsLog,
@@ -323,9 +324,10 @@ export const NotificationBellButton: React.FC = () => {
                 <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/70">
                   {priceAlerts.map((rule) => (
                     <div key={rule.id} className="py-2.5 flex items-center justify-between gap-2 text-xs">
-                      <div>
-                        <p className="font-mono-tabular font-semibold text-white">
+                      <div className="min-w-0">
+                        <p className="font-mono-tabular font-semibold text-white truncate">
                           $KLT {rule.condition === 'above' ? '≥' : '≤'} ${rule.targetPriceUsd.toFixed(4)}
+                          {rule.label ? ` · ${rule.label}` : ''}
                         </p>
                         <p className="text-[11px] text-slate-400">
                           {rule.triggered
@@ -336,17 +338,17 @@ export const NotificationBellButton: React.FC = () => {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
-                          onClick={() => togglePriceAlert(rule.id)}
+                          onClick={() => (rule.triggered ? rearmPriceAlert(rule.id) : togglePriceAlert(rule.id))}
                           className={`px-2 py-1 rounded border text-[11px] font-medium ${
-                            rule.active
+                            rule.active && !rule.triggered
                               ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
                               : 'border-slate-700 text-slate-400'
                           }`}
                         >
-                          {rule.active ? 'ON' : 'OFF'}
+                          {rule.triggered ? t('Réarmer', 'Re-arm') : rule.active ? 'ON' : 'OFF'}
                         </button>
                         <button
                           type="button"
@@ -359,6 +361,25 @@ export const NotificationBellButton: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoute('dashboard');
+                      setOpen(false);
+                      window.setTimeout(() => {
+                        document.getElementById('price-alerts-config')?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                      }, 80);
+                    }}
+                    className="text-[11px] font-semibold text-amber-400 hover:text-amber-300"
+                  >
+                    {t('Configuration avancée →', 'Full configuration →')}
+                  </button>
                 </div>
               </div>
             )}

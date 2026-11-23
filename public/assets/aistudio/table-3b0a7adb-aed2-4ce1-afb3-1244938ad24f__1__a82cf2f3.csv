@@ -1,0 +1,6 @@
+﻿#,Action,Statut
+1,Exécuter la migration SQL (colonnes + feature_flags),⬜
+2,Renseigner KLT_MINT_ADDRESS dans KLTDashboardWallet.tsx (adresse SPL post-Pump.fun),⬜
+3,Laisser FEATURE_WEB3 = FALSE pendant la bonding curve (~85-90 SOL),⬜
+4,Basculer FEATURE_WEB3 = TRUE le jour de la migration Raydium (Q3-Q4 2026),⬜
+5,Tester avec un compte user (pas admin) que le SaaS reste intact sans wallet,⬜

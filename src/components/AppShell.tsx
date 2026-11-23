@@ -4,6 +4,8 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
+  Building2,
+  ClipboardCheck,
   Coins,
   CreditCard,
   FileText,
@@ -12,12 +14,14 @@ import {
   Landmark,
   LayoutDashboard,
   Menu,
+  ReceiptText,
   Search,
   Settings,
   Shield,
   Sparkles,
   Terminal,
   TrendingUp,
+  UserPlus,
   Wallet,
   X,
 } from 'lucide-react';
@@ -25,6 +29,7 @@ import { useKLTStore } from '../context/KLTStoreContext';
 import { RouteId } from '../types/klt';
 import { BrandMark } from './BrandMark';
 import { NotificationBellButton, ToastStack } from './NotificationCenter';
+import { useKltPriceMonitor } from '../hooks/useKltPriceMonitor';
 
 interface NavItem {
   id: RouteId;
@@ -147,6 +152,24 @@ const NAV_ITEMS: NavItem[] = [
     icon: TrendingUp,
   },
   {
+    id: 'pillars-reporting',
+    labelFr: '8 Piliers Reporting',
+    labelEn: '8 Pillars Reporting',
+    descFr: 'KIIS CashFlow, ImmoScale AI, Villagia, Beldozac...',
+    descEn: 'KIIS CashFlow, ImmoScale AI, Villagia, Beldozac...',
+    group: 'ecosystem',
+    icon: Building2,
+  },
+  {
+    id: 'referral',
+    labelFr: 'Parrainage & Affiliation',
+    labelEn: 'Referral Program',
+    descFr: 'Lien réel MK-ADAMA-01 et commissions vérifiées',
+    descEn: 'Real referral link MK-ADAMA-01 and verified rewards',
+    group: 'ecosystem',
+    icon: UserPlus,
+  },
+  {
     id: 'whitepaper',
     labelFr: 'Livre Blanc v3.1',
     labelEn: 'Whitepaper v3.1',
@@ -168,10 +191,28 @@ const NAV_ITEMS: NavItem[] = [
     id: 'subscription',
     labelFr: 'Abonnements VIP',
     labelEn: 'VIP Plans',
-    descFr: 'Standard, Privilège Pro & VIP',
-    descEn: 'Standard, Privilege Pro & VIP',
+    descFr: 'Paddle, Paystack & CinetPay FCFA',
+    descEn: 'Paddle, Paystack & CinetPay FCFA',
     group: 'account',
     icon: CreditCard,
+  },
+  {
+    id: 'remboursement',
+    labelFr: 'Politique /remboursement',
+    labelEn: 'Refund Policy (/remboursement)',
+    descFr: 'Page dédiée Paddle 14 jours (distincte des CGV)',
+    descEn: 'Dedicated 14-day Paddle refund policy page',
+    group: 'account',
+    icon: ReceiptText,
+  },
+  {
+    id: 'action-plan',
+    labelFr: 'Plan Action P0–P2',
+    labelEn: 'P0–P2 Action Plan',
+    descFr: 'Domaine, Purge CSV, Web3 Toggle & PSP',
+    descEn: 'Domain, CSV Purge, Web3 Toggle & PSP',
+    group: 'account',
+    icon: ClipboardCheck,
   },
   {
     id: '2fa',
@@ -196,8 +237,8 @@ const NAV_ITEMS: NavItem[] = [
     id: 'settings',
     labelFr: 'Paramètres & Profil',
     labelEn: 'Profile & Settings',
-    descFr: 'Compte, devise et rôle RBAC',
-    descEn: 'Account, currency and RBAC role',
+    descFr: 'Compte, domaine custom et Web3 opt-in',
+    descEn: 'Account, custom domain and Web3 opt-in',
     group: 'account',
     icon: Settings,
   },
@@ -205,6 +246,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { route, setRoute, language, setLanguage, t, user } = useKLTStore();
+  useKltPriceMonitor();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState('');
