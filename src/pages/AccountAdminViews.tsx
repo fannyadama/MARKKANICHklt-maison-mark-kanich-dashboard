@@ -5,11 +5,13 @@ import {
   Copy,
   Globe,
   KeyRound,
+  Link2Off,
   RotateCcw,
   ShieldCheck,
   Sparkles,
   Terminal,
   Trash2,
+  Wallet,
 } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
 import { FX_RATES, PSP_COMPARISON_MATRIX, SUBSCRIPTION_PLANS } from '../data/kltSeedData';
@@ -30,6 +32,13 @@ export const SettingsProfileView: React.FC = () => {
     reopenOnboarding,
     resetDemoState,
     setRoute,
+    solanaConnected,
+    solanaAddress,
+    walletProvider,
+    openWalletModal,
+    disconnectWallet,
+    verifyWalletSignature,
+    showWeb3Wallet,
   } = useKLTStore();
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
@@ -173,6 +182,78 @@ export const SettingsProfileView: React.FC = () => {
                     {featureWeb3 ? 'ON' : 'OFF'}
                   </span>
                 </button>
+              )}
+            </div>
+
+            {/* Profile-Linked Phantom / Solflare Wallet */}
+            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-amber-400" />
+                  <span className="font-semibold text-white">
+                    {t('Wallet Solana Lié au Profil', 'Profile-Linked Solana Wallet')}
+                  </span>
+                </div>
+                {solanaConnected ? (
+                  <span className="text-emerald-400 font-medium">
+                    {walletProvider} · {user.linkedWallet?.signatureVerified ? t('Signature vérifiée', 'Signature verified') : t('Connecté', 'Connected')}
+                  </span>
+                ) : (
+                  <span className="text-slate-400">{t('Aucun wallet lié', 'No wallet linked')}</span>
+                )}
+              </div>
+
+              {solanaConnected ? (
+                <div className="space-y-2.5">
+                  <p className="font-mono-tabular text-slate-300 break-all bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                    {user.linkedWallet?.address || solanaAddress}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={openWalletModal}
+                      disabled={!showWeb3Wallet}
+                      className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:border-amber-500 text-slate-200 font-medium disabled:opacity-40 whitespace-nowrap"
+                    >
+                      {t('Changer / Gérer Wallet', 'Switch / Manage Wallet')}
+                    </button>
+                    {!user.linkedWallet?.signatureVerified && (
+                      <button
+                        type="button"
+                        onClick={() => void verifyWalletSignature()}
+                        className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 font-medium whitespace-nowrap"
+                      >
+                        {t('Signer preuve de propriété', 'Sign ownership proof')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={disconnectWallet}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 font-medium whitespace-nowrap"
+                    >
+                      <Link2Off className="w-3.5 h-3.5" />
+                      {t('Dissocier', 'Unlink')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-slate-400">
+                    {t(
+                      'Connectez Phantom ou Solflare pour signer vos transactions SPL, staking et DAO.',
+                      'Connect Phantom or Solflare to authorize SPL swaps, staking, and DAO votes.'
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openWalletModal}
+                    disabled={!showWeb3Wallet}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-semibold whitespace-nowrap"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    {t('Connecter Wallet', 'Connect Wallet')}
+                  </button>
+                </div>
               )}
             </div>
           </div>

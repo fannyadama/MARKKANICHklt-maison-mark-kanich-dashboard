@@ -36,6 +36,18 @@ export type Language = 'fr' | 'en';
 export type FiatCurrency = 'USD' | 'EUR' | 'XOF';
 export type UserRole = 'admin' | 'user';
 
+export type SolanaWalletProvider = 'Phantom' | 'Solflare';
+
+export interface LinkedWalletProfile {
+  provider: SolanaWalletProvider;
+  address: string;
+  connectedAt: string;
+  signatureVerified: boolean;
+  verifiedMessage?: string;
+  network: 'Solana Mainnet' | 'Solana Devnet';
+  connectionSource: 'extension' | 'manual' | 'session';
+}
+
 export interface UserProfile {
   id: number;
   openId: string;
@@ -47,6 +59,7 @@ export interface UserProfile {
   lastSignedIn: string;
   preferredCurrency: FiatCurrency;
   twoFactorEnabled: boolean;
+  linkedWallet?: LinkedWalletProfile;
   notifications: {
     priceAlerts: boolean;
     tradeConfirmations: boolean;

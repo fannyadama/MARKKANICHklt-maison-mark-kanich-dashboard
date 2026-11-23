@@ -21,9 +21,11 @@ import { BrandMark } from '../components/BrandMark';
 import { CryptoComparisonChart, KLTPriceChart } from '../components/Charts';
 import { KLTRechartsPerformance } from '../components/KLTRechartsPerformance';
 import { StakingCalculator } from '../components/StakingCalculator';
+import { StakingApyChart } from '../components/StakingApyChart';
 import { PriceAlertConfigSection } from '../components/PriceAlertConfigSection';
 import { PenguinOnboarding } from '../components/PenguinOnboarding';
 import { SolscanTracker } from '../components/SolscanTracker';
+import { MarkKanichXFeedCard } from '../components/MarkKanichXFeedCard';
 import { EIGHT_PILLARS_REPORTING, FX_RATES } from '../data/kltSeedData';
 
 export const DashboardView: React.FC = () => {
@@ -48,6 +50,10 @@ export const DashboardView: React.FC = () => {
     customDomain,
     referrals,
     subscriptionPlan,
+    solanaConnected,
+    walletProvider,
+    solanaAddress,
+    openWalletModal,
   } = useKLTStore();
 
   const kltAsset = assets.find((a) => a.symbol === 'KLT') || assets[0];
@@ -114,6 +120,22 @@ export const DashboardView: React.FC = () => {
             {hideBalances ? <Eye className="w-4 h-4 text-amber-400" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
             {hideBalances ? t('Afficher soldes', 'Show balances') : t('Masquer soldes', 'Hide balances')}
           </button>
+          {showKltModules && (
+            <button
+              type="button"
+              onClick={openWalletModal}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors whitespace-nowrap shrink-0 ${
+                solanaConnected
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                  : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+              }`}
+            >
+              <Wallet className="w-3.5 h-3.5" />
+              {solanaConnected
+                ? `${walletProvider} · ${solanaAddress.slice(0, 4)}..${solanaAddress.slice(-4)}`
+                : t('Connecter Wallet', 'Connect Wallet')}
+            </button>
+          )}
           <button
             type="button"
             onClick={refreshMarketPrices}
@@ -452,6 +474,9 @@ export const DashboardView: React.FC = () => {
           {/* Interactive $KLT Staking Calculator */}
           <StakingCalculator />
 
+          {/* 12-Month 15% APY Staking Progression Chart (Recharts) */}
+          <StakingApyChart />
+
           {/* Custom $KLT Price Alerts Configuration */}
           <PriceAlertConfigSection />
 
@@ -481,6 +506,9 @@ export const DashboardView: React.FC = () => {
           </section>
         </>
       )}
+
+      {/* Official Mark Kanich X Social Media Feed */}
+      <MarkKanichXFeedCard />
 
       {/* Holdings Allocation & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

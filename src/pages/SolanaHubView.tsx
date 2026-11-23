@@ -25,7 +25,8 @@ export const SolanaHubView: React.FC = () => {
     solanaAddress,
     walletProvider,
     connectWalletWithProvider,
-    toggleSolanaConnection,
+    disconnectWallet,
+    openWalletModal,
     showWeb3Wallet,
     featureWeb3,
     setFeatureWeb3,
@@ -142,10 +143,18 @@ export const SolanaHubView: React.FC = () => {
             <Wallet className="w-3.5 h-3.5" />
             Solflare {solanaConnected && walletProvider === 'Solflare' ? `· ${solanaAddress.slice(0, 4)}..${solanaAddress.slice(-4)}` : ''}
           </button>
+          <button
+            type="button"
+            onClick={openWalletModal}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-xs font-semibold transition-colors whitespace-nowrap"
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            {t('Connecter Wallet', 'Connect Wallet')}
+          </button>
           {solanaConnected && (
             <button
               type="button"
-              onClick={toggleSolanaConnection}
+              onClick={disconnectWallet}
               className="px-3 py-2 rounded-lg border border-red-500/30 text-xs text-red-400 hover:bg-red-500/10 whitespace-nowrap"
             >
               {t('Déconnecter', 'Disconnect')}

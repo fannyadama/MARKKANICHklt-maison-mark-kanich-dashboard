@@ -18,6 +18,9 @@ export const WalletView: React.FC = () => {
     deleteWallet,
     notify,
     setRoute,
+    solanaConnected,
+    walletProvider,
+    openWalletModal,
   } = useKLTStore();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -64,6 +67,20 @@ export const WalletView: React.FC = () => {
           >
             {hideBalances ? <Eye className="w-4 h-4 text-amber-400" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
             {hideBalances ? t('Afficher', 'Show') : t('Masquer', 'Hide')}
+          </button>
+          <button
+            type="button"
+            onClick={openWalletModal}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-xs font-semibold transition-colors whitespace-nowrap ${
+              solanaConnected
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+            }`}
+          >
+            <Wallet className="w-4 h-4" />
+            {solanaConnected
+              ? `${walletProvider} ${t('Lié', 'Linked')}`
+              : t('Connecter Wallet', 'Connect Wallet')}
           </button>
           <button
             type="button"

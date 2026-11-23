@@ -33,6 +33,15 @@ export const INITIAL_USER_PROFILE: UserProfile = {
   lastSignedIn: '2026-11-20 17:12:50',
   preferredCurrency: 'USD',
   twoFactorEnabled: true,
+  linkedWallet: {
+    provider: 'Phantom',
+    address: '7KLTx9mQpR4vN2wB8yH5cZ1eJ6fM3aU9dS4kT8nV2xPq',
+    connectedAt: '2026-11-20 17:12:50',
+    signatureVerified: true,
+    verifiedMessage: 'Maison Mark Kanich · Verified session owner',
+    network: 'Solana Mainnet',
+    connectionSource: 'session',
+  },
   notifications: {
     priceAlerts: true,
     tradeConfirmations: true,

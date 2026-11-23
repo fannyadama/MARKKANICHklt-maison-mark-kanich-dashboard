@@ -29,7 +29,8 @@ import { useKLTStore } from '../context/KLTStoreContext';
 import { RouteId } from '../types/klt';
 import { BrandMark } from './BrandMark';
 import { NotificationBellButton, ToastStack } from './NotificationCenter';
-import { useKltPriceMonitor } from '../hooks/useKltPriceMonitor';
+import { ConnectWalletModal } from './ConnectWalletModal';
+import { usePriceMonitor } from '../hooks/usePriceMonitor';
 
 interface NavItem {
   id: RouteId;
@@ -245,8 +246,20 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { route, setRoute, language, setLanguage, t, user } = useKLTStore();
-  useKltPriceMonitor();
+  const {
+    route,
+    setRoute,
+    language,
+    setLanguage,
+    t,
+    user,
+    showWeb3Wallet,
+    solanaConnected,
+    solanaAddress,
+    walletProvider,
+    openWalletModal,
+  } = useKLTStore();
+  usePriceMonitor();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState('');
@@ -348,7 +361,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {renderNavGroup('account', 'Compte & Administration', 'Account & Admin')}
         </div>
 
-        <div className="p-3 border-t border-slate-800/90">
+        <div className="p-3 border-t border-slate-800/90 space-y-2">
           <button
             type="button"
             onClick={() => handleSelectRoute('settings')}
@@ -358,6 +371,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <p className="text-[11px] text-slate-400 truncate">
               {user.role === 'admin' ? 'Admin' : 'Trader'} · {user.email}
             </p>
+            {showWeb3Wallet && (
+              <p className="text-[11px] font-mono-tabular mt-1 truncate text-amber-400">
+                {solanaConnected
+                  ? `${walletProvider} · ${solanaAddress.slice(0, 4)}..${solanaAddress.slice(-4)}`
+                  : t('Aucun wallet lié', 'No wallet linked')}
+              </p>
+            )}
           </button>
         </div>
       </aside>
@@ -439,6 +459,23 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </button>
 
             <NotificationBellButton />
+
+            {showWeb3Wallet && (
+              <button
+                type="button"
+                onClick={openWalletModal}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                  solanaConnected
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                    : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                }`}
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                {solanaConnected
+                  ? `${walletProvider} · ${solanaAddress.slice(0, 4)}..${solanaAddress.slice(-4)}`
+                  : t('Connecter Wallet', 'Connect Wallet')}
+              </button>
+            )}
 
             <button
               type="button"
@@ -537,6 +574,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
         </div>
       )}
+
+      {/* Connect Wallet Modal */}
+      <ConnectWalletModal />
 
       {/* Toast Notifications */}
       <ToastStack />
