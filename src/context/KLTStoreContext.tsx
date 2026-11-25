@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import {
   CRYPTO_ASSETS,
   FX_RATES,
+  INITIAL_ACCESS_NFT_TIERS,
   INITIAL_DAO_PROPOSALS,
   INITIAL_DEVNET_STATE,
   INITIAL_FAQ_ITEMS,
@@ -10,9 +11,12 @@ import {
   INITIAL_REFERRALS,
   INITIAL_TRANSACTIONS,
   INITIAL_USER_PROFILE,
+  INITIAL_VILLAGIA_DIVIDEND,
+  INITIAL_VISA_CARD_STATE,
   INITIAL_WALLETS,
 } from '../data/kltSeedData';
 import {
+  AccessNftTier,
   CryptoAsset,
   DaoProposal,
   DevnetState,
@@ -30,6 +34,8 @@ import {
   TransactionRecord,
   UserProfile,
   UserRole,
+  VillagiaDividendState,
+  VisaCardState,
   WalletRecord,
   WorkspaceMode,
 } from '../types/klt';
@@ -81,6 +87,10 @@ interface PersistedState {
   walletProvider: 'Phantom' | 'Solflare';
   referrals: ReferralRecord[];
   onboardingDismissed: boolean;
+  visaCard: VisaCardState;
+  accessNftTiers: AccessNftTier[];
+  ownedNftIds: string[];
+  villagiaDividend: VillagiaDividendState;
 }
 
 const STORAGE_KEY = 'klt_maison_mark_kanich_state_v1';
@@ -158,6 +168,10 @@ const DEFAULT_STATE: PersistedState = {
   walletProvider: 'Phantom',
   referrals: INITIAL_REFERRALS,
   onboardingDismissed: false,
+  visaCard: INITIAL_VISA_CARD_STATE,
+  accessNftTiers: INITIAL_ACCESS_NFT_TIERS,
+  ownedNftIds: ['NFT-003'],
+  villagiaDividend: INITIAL_VILLAGIA_DIVIDEND,
 };
 
 function loadInitialState(): PersistedState {
@@ -165,16 +179,26 @@ function loadInitialState(): PersistedState {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw) as Partial<PersistedState>;
+    const normalizedDao = Array.isArray(parsed.daoProposals)
+      ? parsed.daoProposals.map((p) => ({ ...p, votesAbstain: p.votesAbstain ?? 0 }))
+      : INITIAL_DAO_PROPOSALS;
     return {
       ...DEFAULT_STATE,
       ...parsed,
       user: { ...DEFAULT_STATE.user, ...(parsed.user || {}) },
       devnet: { ...DEFAULT_STATE.devnet, ...(parsed.devnet || {}) },
+      daoProposals: normalizedDao,
       priceAlerts: Array.isArray(parsed.priceAlerts) ? parsed.priceAlerts : DEFAULT_PRICE_ALERTS,
       notificationsLog: Array.isArray(parsed.notificationsLog)
         ? parsed.notificationsLog
         : DEFAULT_NOTIFICATIONS_LOG,
       referrals: Array.isArray(parsed.referrals) ? parsed.referrals : INITIAL_REFERRALS,
+      visaCard: parsed.visaCard ? { ...INITIAL_VISA_CARD_STATE, ...parsed.visaCard } : INITIAL_VISA_CARD_STATE,
+      accessNftTiers: Array.isArray(parsed.accessNftTiers) ? parsed.accessNftTiers : INITIAL_ACCESS_NFT_TIERS,
+      ownedNftIds: Array.isArray(parsed.ownedNftIds) ? parsed.ownedNftIds : ['NFT-003'],
+      villagiaDividend: parsed.villagiaDividend
+        ? { ...INITIAL_VILLAGIA_DIVIDEND, ...parsed.villagiaDividend }
+        : INITIAL_VILLAGIA_DIVIDEND,
     };
   } catch {
     return DEFAULT_STATE;
@@ -224,7 +248,7 @@ interface KLTStoreContextValue {
   createWallet: (label: string, network: 'Solana Mainnet' | 'Solana Devnet') => void;
   setDefaultWallet: (walletId: string) => void;
   deleteWallet: (walletId: string) => void;
-  voteDaoProposal: (proposalId: string, direction: 'for' | 'against') => void;
+  voteDaoProposal: (proposalId: string, direction: 'for' | 'against' | 'abstain') => void;
   createDaoProposal: (title: string, description: string, category: DaoProposal['category']) => void;
   voteFaqItem: (faqId: string, feedback: 'helpful' | 'not_helpful') => void;
   revokeLoginSession: (sessionId: string) => void;
@@ -238,7 +262,12 @@ interface KLTStoreContextValue {
   priceAlerts: PriceAlertRule[];
   notificationsLog: NotificationLogItem[];
   unreadNotificationsCount: number;
-  addPriceAlert: (condition: 'above' | 'below', targetPriceUsd: number, label?: string) => void;
+  addPriceAlert: (
+    condition: 'above' | 'below',
+    targetPriceUsd: number,
+    label?: string,
+    actionIntent?: 'buy' | 'sell'
+  ) => void;
   togglePriceAlert: (id: string) => void;
   rearmPriceAlert: (id: string) => void;
   deletePriceAlert: (id: string) => void;
@@ -279,6 +308,15 @@ interface KLTStoreContextValue {
   onboardingDismissed: boolean;
   dismissOnboarding: () => void;
   reopenOnboarding: () => void;
+  visaCard: VisaCardState;
+  toggleVisaCardFreeze: () => void;
+  depositToVisaCard: (kltAmount: number) => boolean;
+  withdrawFromVisaCard: (kltAmount: number) => boolean;
+  accessNftTiers: AccessNftTier[];
+  ownedNftIds: string[];
+  mintAccessNft: (nftId: string) => boolean;
+  villagiaDividend: VillagiaDividendState;
+  claimVillagiaDividend: () => boolean;
 }
 
 const KLTStoreContext = createContext<KLTStoreContextValue | null>(null);
@@ -1135,8 +1173,10 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   const voteDaoProposal = useCallback(
-    (proposalId: string, direction: 'for' | 'against') => {
-      const votingWeight = Math.max(1000, Math.round(totalKltBalance + state.stakedKlt));
+    (proposalId: string, direction: 'for' | 'against' | 'abstain') => {
+      const hasPlatinumPass = state.ownedNftIds.includes('NFT-004');
+      const multiplier = hasPlatinumPass ? 5 : 1;
+      const votingWeight = Math.max(1000, Math.round(totalKltBalance + state.stakedKlt)) * multiplier;
       setState((prev) => ({
         ...prev,
         daoProposals: prev.daoProposals.map((p) => {
@@ -1144,16 +1184,24 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (p.userVote === direction) return p;
           let votesFor = p.votesFor;
           let votesAgainst = p.votesAgainst;
+          let votesAbstain = p.votesAbstain ?? 0;
           if (p.userVote === 'for') votesFor -= votingWeight;
           if (p.userVote === 'against') votesAgainst -= votingWeight;
+          if (p.userVote === 'abstain') votesAbstain -= votingWeight;
           if (direction === 'for') votesFor += votingWeight;
-          else votesAgainst += votingWeight;
-          return { ...p, votesFor, votesAgainst, userVote: direction };
+          else if (direction === 'against') votesAgainst += votingWeight;
+          else votesAbstain += votingWeight;
+          return { ...p, votesFor, votesAgainst, votesAbstain, userVote: direction };
         }),
       }));
-      notify(t(`Vote enregistré (${votingWeight.toLocaleString()} $KLT).`, `Vote recorded (${votingWeight.toLocaleString()} $KLT).`));
+      notify(
+        t(
+          `Vote enregistré (${votingWeight.toLocaleString()} $KLT${hasPlatinumPass ? ' · Bonus Platinum 5x' : ''}).`,
+          `Vote recorded (${votingWeight.toLocaleString()} $KLT${hasPlatinumPass ? ' · Platinum 5x' : ''}).`
+        )
+      );
     },
-    [notify, state.stakedKlt, t, totalKltBalance]
+    [notify, state.ownedNftIds, state.stakedKlt, t, totalKltBalance]
   );
 
   const createDaoProposal = useCallback(
@@ -1169,6 +1217,7 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         status: 'Active',
         votesFor: Math.round(totalKltBalance + state.stakedKlt),
         votesAgainst: 0,
+        votesAbstain: 0,
         quorumRequired: 500000,
         endsAt: '2026-12-20',
         author: state.user.name,
@@ -1269,23 +1318,35 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 
   const addPriceAlert = useCallback(
-    (condition: 'above' | 'below', targetPriceUsd: number, label?: string) => {
+    (
+      condition: 'above' | 'below',
+      targetPriceUsd: number,
+      label?: string,
+      actionIntent?: 'buy' | 'sell'
+    ) => {
       if (targetPriceUsd <= 0) return;
       const cleanLabel = label?.trim() || undefined;
       const rule: PriceAlertRule = {
         id: `pa-${Date.now()}`,
         condition,
         targetPriceUsd: +targetPriceUsd.toFixed(4),
+        actionIntent,
         label: cleanLabel,
         active: true,
         triggered: false,
         createdAt: nowTimestamp(),
       };
       setState((prev) => ({ ...prev, priceAlerts: [rule, ...prev.priceAlerts] }));
+      const intentText =
+        actionIntent === 'buy'
+          ? t('Achat', 'Buy')
+          : actionIntent === 'sell'
+          ? t('Vente', 'Sell')
+          : null;
       notify(
         t(
-          `Alerte configurée : $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}${cleanLabel ? ` (${cleanLabel})` : ''}.`,
-          `Alert set: $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}${cleanLabel ? ` (${cleanLabel})` : ''}.`
+          `Alerte ${intentText ? `${intentText} ` : ''}configurée : $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}${cleanLabel ? ` (${cleanLabel})` : ''}.`,
+          `${intentText ? `${intentText} alert` : 'Alert'} set: $KLT ${condition === 'above' ? '≥' : '≤'} $${targetPriceUsd.toFixed(4)}${cleanLabel ? ` (${cleanLabel})` : ''}.`
         ),
         'info',
         { category: 'price_alert', title: t('Alerte Prix Configurée', 'Price Alert Configured') }
@@ -1715,6 +1776,276 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setState((prev) => ({ ...prev, onboardingDismissed: false }));
   }, []);
 
+  const toggleVisaCardFreeze = useCallback(() => {
+    const nextFrozen = !state.visaCard.isFrozen;
+    setState((prev) => ({
+      ...prev,
+      visaCard: { ...prev.visaCard, isFrozen: nextFrozen },
+    }));
+    notify(
+      nextFrozen
+        ? t('Carte Visa Virtuelle gelée par sécurité.', 'Virtual Visa Card frozen for security.')
+        : t('Carte Visa Virtuelle dégelée et active.', 'Virtual Visa Card unfrozen and active.'),
+      nextFrozen ? 'warning' : 'success',
+      { category: 'system', title: t('Carte Visa Virtuelle KLT', 'KLT Virtual Visa Card') }
+    );
+  }, [notify, state.visaCard.isFrozen, t]);
+
+  const depositToVisaCard = useCallback(
+    (kltAmount: number): boolean => {
+      if (kltAmount < 100) {
+        notify(
+          t('Le dépôt minimum vers le coffre carte est de 100 $KLT.', 'Minimum card escrow deposit is 100 $KLT.'),
+          'warning',
+          { category: 'transaction', title: t('Dépôt Carte Visa', 'Visa Card Deposit') }
+        );
+        return false;
+      }
+      if (kltAmount > totalKltBalance) {
+        notify(t('Solde $KLT liquide insuffisant.', 'Insufficient liquid $KLT balance.'), 'error');
+        return false;
+      }
+      const usdCredited = +(kltAmount * kltPriceUsd).toFixed(2);
+      const txHash = makeTxHash();
+      const timestamp = nowTimestamp();
+
+      setState((prev) => {
+        let remaining = kltAmount;
+        const nextWallets = prev.wallets.map((w) => {
+          if (remaining <= 0) return w;
+          const take = Math.min(w.kltBalance, remaining);
+          remaining -= take;
+          return { ...w, kltBalance: +(w.kltBalance - take).toFixed(4) };
+        });
+        const cardTx = {
+          id: `vtx-${Date.now()}`,
+          merchant: 'Recharge Coffre Escrow $KLT',
+          categoryFr: 'Dépôt Anchor',
+          categoryEn: 'Anchor Escrow Top-up',
+          amountUsd: usdCredited,
+          date: timestamp.slice(0, 10),
+          txHash,
+        };
+        const ledgerTx: TransactionRecord = {
+          id: `tx-${Date.now()}`,
+          type: 'sell',
+          kltAmount,
+          pricePerKlt: kltPriceUsd,
+          totalAmount: usdCredited,
+          currency: 'USD',
+          paymentMethod: 'KLT Card Escrow Vault',
+          status: 'Completed',
+          txHash,
+          description: `Verrouillage ${kltAmount.toLocaleString()} $KLT → Carte Visa (+$${usdCredited.toFixed(2)})`,
+          createdAt: timestamp,
+        };
+        return {
+          ...prev,
+          wallets: nextWallets,
+          transactions: [ledgerTx, ...prev.transactions],
+          visaCard: {
+            ...prev.visaCard,
+            kltEscrowBalance: +(prev.visaCard.kltEscrowBalance + kltAmount).toFixed(4),
+            transactions: [cardTx, ...prev.visaCard.transactions].slice(0, 12),
+          },
+        };
+      });
+
+      notify(
+        t(
+          `+${kltAmount.toLocaleString()} $KLT déposés dans l’escrow carte (≈ $${usdCredited.toFixed(2)} USD).`,
+          `+${kltAmount.toLocaleString()} $KLT deposited into card escrow (≈ $${usdCredited.toFixed(2)} USD).`
+        ),
+        'success',
+        { category: 'transaction', title: t('Carte Visa Rechargée', 'Visa Card Topped Up') }
+      );
+      return true;
+    },
+    [kltPriceUsd, notify, t, totalKltBalance]
+  );
+
+  const withdrawFromVisaCard = useCallback(
+    (kltAmount: number): boolean => {
+      if (kltAmount <= 0 || kltAmount > state.visaCard.kltEscrowBalance) {
+        notify(
+          t('Montant supérieur au solde verrouillé sur la carte.', 'Amount exceeds card escrow balance.'),
+          'error'
+        );
+        return false;
+      }
+      const usdValue = +(kltAmount * kltPriceUsd).toFixed(2);
+      const txHash = makeTxHash();
+      const timestamp = nowTimestamp();
+
+      setState((prev) => {
+        const defaultIdx = prev.wallets.findIndex((w) => w.isDefault);
+        const targetIdx = defaultIdx >= 0 ? defaultIdx : 0;
+        const nextWallets = prev.wallets.map((w, idx) =>
+          idx === targetIdx ? { ...w, kltBalance: +(w.kltBalance + kltAmount).toFixed(4) } : w
+        );
+        const cardTx = {
+          id: `vtx-${Date.now()}`,
+          merchant: 'Retrait Coffre Escrow → Wallet',
+          categoryFr: 'Retrait Anchor',
+          categoryEn: 'Anchor Withdrawal',
+          amountUsd: -usdValue,
+          date: timestamp.slice(0, 10),
+          txHash,
+        };
+        const ledgerTx: TransactionRecord = {
+          id: `tx-${Date.now()}`,
+          type: 'reward',
+          kltAmount,
+          pricePerKlt: kltPriceUsd,
+          totalAmount: usdValue,
+          currency: 'USD',
+          paymentMethod: 'KLT Card Escrow Vault',
+          status: 'Completed',
+          txHash,
+          description: `Déblocage ${kltAmount.toLocaleString()} $KLT depuis Escrow Carte`,
+          createdAt: timestamp,
+        };
+        return {
+          ...prev,
+          wallets: nextWallets,
+          transactions: [ledgerTx, ...prev.transactions],
+          visaCard: {
+            ...prev.visaCard,
+            kltEscrowBalance: +(prev.visaCard.kltEscrowBalance - kltAmount).toFixed(4),
+            transactions: [cardTx, ...prev.visaCard.transactions].slice(0, 12),
+          },
+        };
+      });
+
+      notify(
+        t(
+          `${kltAmount.toLocaleString()} $KLT retirés vers votre portefeuille principal.`,
+          `${kltAmount.toLocaleString()} $KLT withdrawn to your primary wallet.`
+        ),
+        'info',
+        { category: 'transaction', title: t('Retrait Escrow Carte', 'Card Escrow Withdrawal') }
+      );
+      return true;
+    },
+    [kltPriceUsd, notify, state.visaCard.kltEscrowBalance, t]
+  );
+
+  const mintAccessNft = useCallback(
+    (nftId: string): boolean => {
+      const target = state.accessNftTiers.find((n) => n.id === nftId);
+      if (!target) return false;
+      if (state.ownedNftIds.includes(nftId)) {
+        notify(t('Vous détenez déjà ce Pass NFT.', 'You already own this NFT Pass.'), 'info');
+        return false;
+      }
+      if (target.minted >= target.supply) {
+        notify(t('Collection épuisée.', 'Tier supply exhausted.'), 'error');
+        return false;
+      }
+      if (totalKltBalance < target.priceKlt) {
+        notify(t('Solde $KLT insuffisant pour minter ce Pass.', 'Insufficient $KLT balance to mint pass.'), 'error');
+        return false;
+      }
+
+      const txHash = makeTxHash();
+      const timestamp = nowTimestamp();
+      setState((prev) => {
+        let remaining = target.priceKlt;
+        const nextWallets = prev.wallets.map((w) => {
+          if (remaining <= 0) return w;
+          const take = Math.min(w.kltBalance, remaining);
+          remaining -= take;
+          return { ...w, kltBalance: +(w.kltBalance - take).toFixed(4) };
+        });
+        const ledgerTx: TransactionRecord = {
+          id: `tx-${Date.now()}`,
+          type: 'buy',
+          kltAmount: target.priceKlt,
+          pricePerKlt: kltPriceUsd,
+          totalAmount: +(target.priceKlt * kltPriceUsd).toFixed(2),
+          currency: 'USD',
+          paymentMethod: `Solana NFT Mint · ${target.tier}`,
+          status: 'Completed',
+          txHash,
+          description: `Mint ${target.name} (${target.tier})`,
+          createdAt: timestamp,
+        };
+        return {
+          ...prev,
+          wallets: nextWallets,
+          transactions: [ledgerTx, ...prev.transactions],
+          ownedNftIds: [...prev.ownedNftIds, nftId],
+          accessNftTiers: prev.accessNftTiers.map((n) =>
+            n.id === nftId ? { ...n, minted: Math.min(n.supply, n.minted + 1) } : n
+          ),
+        };
+      });
+
+      notify(
+        t(
+          `${target.name} (${target.tier}) minté sur Solana (${txHash}).`,
+          `${target.nameEn} (${target.tier}) minted on Solana (${txHash}).`
+        ),
+        'success',
+        { category: 'transaction', title: t('Pass NFT Minté', 'NFT Pass Minted') }
+      );
+      return true;
+    },
+    [kltPriceUsd, notify, state.accessNftTiers, state.ownedNftIds, t, totalKltBalance]
+  );
+
+  const claimVillagiaDividend = useCallback((): boolean => {
+    if (state.villagiaDividend.hasClaimed || state.villagiaDividend.eligibleUsdc <= 0) {
+      notify(
+        t('Les dividendes USDC de cette époque ont déjà été réclamés.', 'USDC dividends for this epoch have already been claimed.'),
+        'info'
+      );
+      return false;
+    }
+    const amount = state.villagiaDividend.eligibleUsdc;
+    const txHash = makeTxHash();
+    const timestamp = nowTimestamp();
+
+    setState((prev) => {
+      const ledgerTx: TransactionRecord = {
+        id: `tx-${Date.now()}`,
+        type: 'reward',
+        kltAmount: +(amount / kltPriceUsd).toFixed(2),
+        pricePerKlt: kltPriceUsd,
+        totalAmount: amount,
+        currency: 'USDC',
+        paymentMethod: 'Villagia Merkle Distributor',
+        status: 'Completed',
+        txHash,
+        description: `Dividende USDC Villagia (${prev.villagiaDividend.epochLabel})`,
+        createdAt: timestamp,
+      };
+      return {
+        ...prev,
+        usdBalance: +(prev.usdBalance + amount).toFixed(2),
+        transactions: [ledgerTx, ...prev.transactions],
+        villagiaDividend: {
+          ...prev.villagiaDividend,
+          hasClaimed: true,
+          claimedUsdc: +(prev.villagiaDividend.claimedUsdc + amount).toFixed(2),
+          eligibleUsdc: 0,
+          claimedAt: timestamp,
+          txSignature: txHash,
+        },
+      };
+    });
+
+    notify(
+      t(
+        `+${amount.toFixed(2)} USDC réclamés via preuve Merkle Villagia (${txHash}).`,
+        `+${amount.toFixed(2)} USDC claimed via Villagia Merkle proof (${txHash}).`
+      ),
+      'success',
+      { category: 'staking', title: t('Dividende Villagia USDC', 'Villagia USDC Dividend') }
+    );
+    return true;
+  }, [kltPriceUsd, notify, state.villagiaDividend.eligibleUsdc, state.villagiaDividend.hasClaimed, t]);
+
   const showWeb3Wallet = state.featureWeb3 && state.web3ModeEnabled;
 
   const resetDemoState = useCallback(() => {
@@ -1819,6 +2150,15 @@ export const KLTStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         onboardingDismissed: state.onboardingDismissed,
         dismissOnboarding,
         reopenOnboarding,
+        visaCard: state.visaCard,
+        toggleVisaCardFreeze,
+        depositToVisaCard,
+        withdrawFromVisaCard,
+        accessNftTiers: state.accessNftTiers,
+        ownedNftIds: state.ownedNftIds,
+        mintAccessNft,
+        villagiaDividend: state.villagiaDividend,
+        claimVillagiaDividend,
       }}
     >
       {children}

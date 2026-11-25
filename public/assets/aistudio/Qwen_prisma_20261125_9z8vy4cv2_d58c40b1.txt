@@ -1,0 +1,17 @@
+// Ajoutez ce champ dans le modèle CardTransaction de votre schema.prisma
+model CardTransaction {
+  id                    String          @id @default(uuid())
+  virtualCardId         String
+  virtualCard           VirtualCard     @relation(fields: [virtualCardId], references: [id])
+  
+  // Ce champ sert à la fois pour les webhooks Stripe ET les rechargements Solana
+  // Format pour Solana: "RECHARGE_<signature>"
+  stripeAuthorizationId String          @unique 
+  
+  amountCents           BigInt          
+  currency              String          @default("USD")
+  status                TransactionStatus @default(PENDING)
+  merchantName          String?
+  category              String?
+  createdAt             DateTime        @default(now())
+}

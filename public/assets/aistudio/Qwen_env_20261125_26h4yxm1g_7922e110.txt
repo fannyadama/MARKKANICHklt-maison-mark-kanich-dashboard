@@ -1,0 +1,30 @@
+# ==============================================================================
+# ENVIRONNEMENT GÉNÉRAL
+# ==============================================================================
+VITE_APP_ENV=development
+VITE_APP_URL=http://localhost:5173
+
+# ==============================================================================
+# WEB3 & SOLANA (KLT)
+# ==============================================================================
+# Utilisez devnet pour les tests, mainnet-beta pour la production
+VITE_SOLANA_NETWORK=devnet
+VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
+
+# Adresse du Mint $KLT (sera mise à jour après le lancement Pump.fun)
+VITE_KLT_MINT_ADDRESS=11111111111111111111111111111111
+
+# ==============================================================================
+# PAIEMENTS (PADDLE)
+# ==============================================================================
+# Clé publique client (ne commence PAS par 'live_' ou contient des secrets)
+VITE_PADDLE_CLIENT_TOKEN=test_your_public_token_here
+VITE_PADDLE_ENVIRONMENT=sandbox
+
+# ==============================================================================
+# BACKEND (Ne pas préfixer par VITE_ pour qu'ils ne soient PAS exposés au navigateur)
+# ==============================================================================
+DATABASE_URL=postgresql://user:password@localhost:5432/klt_dashboard
+JWT_SECRET=change_this_to_a_long_random_string_in_production
+# ⚠️ LA CLÉ PRIVÉE DU TRÉSOR NE DOIT JAMAIS ÊTRE ICI SI C'EST UN PROJET FRONTEND PUR
+# Elle doit rester sur un serveur backend sécurisé ou un script de déploiement local.

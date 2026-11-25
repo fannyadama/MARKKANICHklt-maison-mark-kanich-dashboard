@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
-import { Check, Plus, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { Check, MinusCircle, Plus, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
 import { DaoProposal } from '../types/klt';
 
 export const DaoGovernanceView: React.FC = () => {
-  const { t, language, daoProposals, totalKltBalance, stakedKlt, voteDaoProposal, createDaoProposal } =
-    useKLTStore();
+  const {
+    t,
+    language,
+    daoProposals,
+    totalKltBalance,
+    stakedKlt,
+    ownedNftIds,
+    voteDaoProposal,
+    createDaoProposal,
+  } = useKLTStore();
   const [filter, setFilter] = useState<'all' | DaoProposal['status']>('all');
   const [showModal, setShowModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newCat, setNewCat] = useState<DaoProposal['category']>('Écosystème');
 
-  const votingPower = Math.max(1000, Math.round(totalKltBalance + stakedKlt));
+  const hasPlatinumPass = ownedNftIds.includes('NFT-004');
+  const votingPower =
+    Math.max(1000, Math.round(totalKltBalance + stakedKlt)) * (hasPlatinumPass ? 5 : 1);
   const filtered = daoProposals.filter((p) => (filter === 'all' ? true : p.status === filter));
 
   const handleCreate = (e: React.FormEvent) => {
@@ -68,7 +78,10 @@ export const DaoGovernanceView: React.FC = () => {
           </p>
         </div>
         <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-5">
-          <p className="text-xs text-slate-400">{t('Votre Pouvoir de Vote', 'Your Voting Power')}</p>
+          <p className="text-xs text-slate-400">
+            {t('Votre Pouvoir de Vote', 'Your Voting Power')}
+            {hasPlatinumPass ? ' · 5x Platinum' : ''}
+          </p>
           <p className="text-2xl font-bold text-amber-400 font-mono-tabular mt-1">
             {votingPower.toLocaleString()} KLT
           </p>
@@ -101,14 +114,19 @@ export const DaoGovernanceView: React.FC = () => {
       {/* Proposals List */}
       <div className="space-y-4">
         {filtered.map((p) => {
-          const totalVotes = p.votesFor + p.votesAgainst;
+          const abstainVotes = p.votesAbstain ?? 0;
+          const totalVotes = p.votesFor + p.votesAgainst + abstainVotes;
           const forPct = totalVotes > 0 ? Math.round((p.votesFor / totalVotes) * 100) : 0;
+          const againstPct = totalVotes > 0 ? Math.round((p.votesAgainst / totalVotes) * 100) : 0;
+          const abstainPct = totalVotes > 0 ? Math.max(0, 100 - forPct - againstPct) : 0;
+          const quorumPct = Math.min(100, Math.round((totalVotes / p.quorumRequired) * 100));
+
           return (
             <div key={p.id} className="bg-[#0F172A] border border-slate-800 rounded-xl p-6 space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1 max-w-3xl">
                   <div className="text-xs text-slate-400 font-mono-tabular">
-                    {p.id} · {p.category} · {t('Clôture', 'Ends')} {p.endsAt} · {p.author}
+                    {p.id} · {p.category} · {t('Clôture', 'Ends')} {p.endsAt} · {p.author} · {t('Quorum', 'Quorum')} {quorumPct}%
                   </div>
                   <h2 className="text-lg font-semibold text-white">
                     {language === 'fr' ? p.title : p.titleEn}
@@ -132,26 +150,30 @@ export const DaoGovernanceView: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-mono-tabular">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-tabular">
                   <span className="text-emerald-400">
                     {t('Pour', 'For')}: {p.votesFor.toLocaleString()} KLT ({forPct}%)
                   </span>
+                  <span className="text-slate-400">
+                    {t('Abstention', 'Abstain')}: {abstainVotes.toLocaleString()} KLT ({abstainPct}%)
+                  </span>
                   <span className="text-red-400">
-                    {t('Contre', 'Against')}: {p.votesAgainst.toLocaleString()} KLT ({100 - forPct}%)
+                    {t('Contre', 'Against')}: {p.votesAgainst.toLocaleString()} KLT ({againstPct}%)
                   </span>
                 </div>
                 <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
                   <div className="h-full bg-emerald-500" style={{ width: `${forPct}%` }} />
-                  <div className="h-full bg-red-500/80" style={{ width: `${100 - forPct}%` }} />
+                  <div className="h-full bg-slate-500" style={{ width: `${abstainPct}%` }} />
+                  <div className="h-full bg-red-500/80" style={{ width: `${againstPct}%` }} />
                 </div>
               </div>
 
               {p.status === 'Active' && (
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex flex-wrap items-center gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => voteDaoProposal(p.id, 'for')}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
                       p.userVote === 'for'
                         ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
                         : 'border-slate-700 bg-slate-900 text-slate-200 hover:border-emerald-500/50'
@@ -163,14 +185,26 @@ export const DaoGovernanceView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => voteDaoProposal(p.id, 'against')}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
                       p.userVote === 'against'
                         ? 'border-red-500 bg-red-500/20 text-red-300'
                         : 'border-slate-700 bg-slate-900 text-slate-200 hover:border-red-500/50'
                     }`}
                   >
-                    <ThumbsDown className="w-3.5 h-3.5" />
+                    {p.userVote === 'against' ? <Check className="w-3.5 h-3.5" /> : <ThumbsDown className="w-3.5 h-3.5" />}
                     {t('Voter Contre', 'Vote Against')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => voteDaoProposal(p.id, 'abstain')}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
+                      p.userVote === 'abstain'
+                        ? 'border-amber-500 bg-amber-500/20 text-amber-300'
+                        : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    {p.userVote === 'abstain' ? <Check className="w-3.5 h-3.5" /> : <MinusCircle className="w-3.5 h-3.5" />}
+                    {t('Abstention', 'Abstain')}
                   </button>
                 </div>
               )}

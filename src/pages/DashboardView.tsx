@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  Bell,
   Building2,
   Coins,
   Eye,
   EyeOff,
   FileCheck2,
+  FileText,
   Globe,
   RefreshCw,
   ShieldCheck,
@@ -23,6 +25,8 @@ import { KLTRechartsPerformance } from '../components/KLTRechartsPerformance';
 import { StakingCalculator } from '../components/StakingCalculator';
 import { StakingApyChart } from '../components/StakingApyChart';
 import { PriceAlertConfigSection } from '../components/PriceAlertConfigSection';
+import { PriceAlertModal } from '../components/PriceAlertModal';
+import { DashboardReportModal } from '../components/DashboardReportModal';
 import { PenguinOnboarding } from '../components/PenguinOnboarding';
 import { SolscanTracker } from '../components/SolscanTracker';
 import { MarkKanichXFeedCard } from '../components/MarkKanichXFeedCard';
@@ -54,7 +58,12 @@ export const DashboardView: React.FC = () => {
     walletProvider,
     solanaAddress,
     openWalletModal,
+    priceAlerts,
   } = useKLTStore();
+
+  const [priceAlertModalOpen, setPriceAlertModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const activeAlertCount = priceAlerts.filter((r) => r.active && !r.triggered).length;
 
   const kltAsset = assets.find((a) => a.symbol === 'KLT') || assets[0];
   const totalPortfolioUsd = (totalKltBalance + stakedKlt) * kltPriceUsd + usdBalance;
@@ -136,6 +145,25 @@ export const DashboardView: React.FC = () => {
                 : t('Connecter Wallet', 'Connect Wallet')}
             </button>
           )}
+          {showKltModules && (
+            <button
+              type="button"
+              onClick={() => setPriceAlertModalOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-colors whitespace-nowrap shrink-0"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              {t('Alerte Prix', 'Price Alert')}
+              {activeAlertCount > 0 ? ` (${activeAlertCount})` : ''}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setReportModalOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-700 bg-slate-900 text-slate-100 hover:border-amber-500/60 hover:text-amber-300 transition-colors whitespace-nowrap shrink-0"
+          >
+            <FileText className="w-3.5 h-3.5 text-amber-400" />
+            {t('Générer Rapport', 'Generate Report')}
+          </button>
           <button
             type="button"
             onClick={refreshMarketPrices}
@@ -146,6 +174,15 @@ export const DashboardView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <PriceAlertModal
+        isOpen={priceAlertModalOpen}
+        onClose={() => setPriceAlertModalOpen(false)}
+      />
+      <DashboardReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+      />
 
       {/* Stipulor SaaS & 8 Pillars Governance Summary (shown in Unified & Stipulor modes) */}
       {showStipulorModules && (
@@ -170,6 +207,14 @@ export const DashboardView: React.FC = () => {
               >
                 <Building2 className="w-3.5 h-3.5 text-amber-400" />
                 {t('8 Piliers Reporting', '8 Pillars Reporting')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoute('nft-villagia')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:border-amber-500 text-xs font-medium text-slate-200 whitespace-nowrap"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                {t('NFT & Villagia USDC', 'NFT & Villagia USDC')}
               </button>
               <button
                 type="button"

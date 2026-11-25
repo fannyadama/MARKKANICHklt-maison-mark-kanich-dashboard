@@ -74,10 +74,35 @@ export function usePriceMonitor() {
           ? 'franchi à la baisse'
           : 'crossed below';
 
+      const intentPrefix =
+        rule.actionIntent === 'buy'
+          ? language === 'fr'
+            ? '[Achat] '
+            : '[Buy] '
+          : rule.actionIntent === 'sell'
+          ? language === 'fr'
+            ? '[Vente] '
+            : '[Sell] '
+          : '';
+      const actionRoute =
+        rule.actionIntent === 'buy' ? 'buy' : rule.actionIntent === 'sell' ? 'sell' : 'trade';
+      const actionLabel =
+        rule.actionIntent === 'buy'
+          ? language === 'fr'
+            ? 'Acheter $KLT'
+            : 'Buy $KLT'
+          : rule.actionIntent === 'sell'
+          ? language === 'fr'
+            ? 'Vendre $KLT'
+            : 'Sell $KLT'
+          : language === 'fr'
+          ? 'Trader $KLT'
+          : 'Trade $KLT';
+
       notify(
         language === 'fr'
-          ? `Le $KLT a ${crossingDirection} $${rule.targetPriceUsd.toFixed(4)} (${dirSymbol}) : $${prevPrice.toFixed(4)} → $${currentMarketPrice.toFixed(4)}${labelSuffix}.`
-          : `$KLT ${crossingDirection} $${rule.targetPriceUsd.toFixed(4)} (${dirSymbol}): $${prevPrice.toFixed(4)} → $${currentMarketPrice.toFixed(4)}${labelSuffix}.`,
+          ? `${intentPrefix}Le $KLT a ${crossingDirection} $${rule.targetPriceUsd.toFixed(4)} (${dirSymbol}) : $${prevPrice.toFixed(4)} → $${currentMarketPrice.toFixed(4)}${labelSuffix}.`
+          : `${intentPrefix}$KLT ${crossingDirection} $${rule.targetPriceUsd.toFixed(4)} (${dirSymbol}): $${prevPrice.toFixed(4)} → $${currentMarketPrice.toFixed(4)}${labelSuffix}.`,
         'warning',
         {
           category: 'price_alert',
@@ -85,8 +110,8 @@ export function usePriceMonitor() {
             language === 'fr'
               ? `Seuil $KLT Franchi${labelSuffix}`
               : `$KLT Threshold Crossed${labelSuffix}`,
-          actionLabel: language === 'fr' ? 'Trader $KLT' : 'Trade $KLT',
-          actionRoute: 'trade',
+          actionLabel,
+          actionRoute,
         }
       );
     });

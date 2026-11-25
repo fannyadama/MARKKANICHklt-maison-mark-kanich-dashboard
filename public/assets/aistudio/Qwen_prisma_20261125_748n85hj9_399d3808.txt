@@ -1,0 +1,102 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Table Utilisateur (Extension de votre table existante)
+model User {
+  id            Int       @id @default(autoincrement())
+  openId        String    @unique // Identifiant OAuth Google
+  name          String
+  email         String    @unique
+  loginMethod   String
+  role          String    @default("user") // 'admin' ou 'user'
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastSignedIn  DateTime?
+
+  // Ajouts pour la sécurité Couche 7 et Web3
+  walletAddress       String?       @unique // Adresse Solana (protégée par RLS)
+  web3ModeEnabled     Boolean       @default(false)
+  
+  // Relations
+  virtualCard   VirtualCard?
+  referralsSent Referral[]        @relation("Referrer")
+  referralsGot  Referral[]        @relation("Referred")
+}
+
+// 2. Table Carte Virtuelle (Le "Fiat Buffer")
+model VirtualCard {
+  id                   String   @id @default(uuid())
+  userId               Int      @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  
+  // Identifiants Stripe Issuing
+  stripeCardholderId   String   @unique // ID du titulaire chez Stripe
+  stripeCardId         String?  @unique // ID de la carte physique/virtuelle chez Stripe
+  
+  // Soldes
+  kltLockedBalance     BigInt   @default(0) // Montant $KLT réellement séquestré on-chain (en lamports du token, ex: 1000 * 10^6)
+  fiatBalanceCents     BigInt   @default(0) // Solde disponible pour les dépenses (en cents, ex: 5000 = 50.00 USD)
+  
+  // État de la carte
+  status               CardStatus @default(ACTIVE)
+  isFrozen             Boolean    @default(false)
+  
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  transactions         CardTransaction[]
+}
+
+enum CardStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+  PENDING_KYC // Si vous ajoutez une vérification d'identité plus tard
+}
+
+// 3. Table des Transactions (Journal d'audit pour réconciliation)
+model CardTransaction {
+  id                    String          @id @default(uuid())
+  virtualCardId         String
+  virtualCard           VirtualCard     @relation(fields: [virtualCardId], references: [id])
+  
+  stripeAuthorizationId String          @unique // Pour éviter les doubles traitements de webhook
+  amountCents           BigInt          // Montant de la transaction en cents
+  currency              String          @default("USD")
+  
+  status                TransactionStatus @default(PENDING)
+  
+  // Métadonnées pour le dashboard
+  merchantName          String?
+  category              String?
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+enum TransactionStatus {
+  PENDING   // Autorisation reçue, en attente de settlement
+  CAPTURED  // Fonds débités définitivement
+  REVERSED  // Transaction annulée par le commerçant (ex: hôtel)
+  DECLINED  // Refusé par le webhook (fonds insuffisants ou carte gelée)
+}
+
+// 4. Table de Parrainage (Pour lier avec le composant précédent)
+model Referral {
+  id              Int      @id @default(autoincrement())
+  referrerUserId  Int
+  referrer        User     @relation("Referrer", fields: [referrerUserId], references: [id])
+  referredUserId  Int      @unique
+  referred        User     @relation("Referred", fields: [referredUserId], references: [id])
+  rewardKLT       BigInt   @default(0) // Récompense en lamports $KLT
+  status          String   @default("pending") // 'pending', 'active', 'paid'
+  createdAt       DateTime @default(now())
+}

@@ -1,0 +1,6 @@
+﻿Élément,Constat,Analyse & Impact
+Langage Principal,TypeScript (95.8%),"✅ Excellent choix. Le typage fort est crucial pour la sécurité financière (gestion des soldes, transactions) et réduit les bugs en production."
+Build Tool,Vite (vite.config.ts),✅ Ultra-rapide. Idéal pour un dashboard nécessitant des temps de chargement minimaux et une expérience utilisateur fluide (HMR).
+Gestionnaire de paquets,Bun (bun.lock),✅ Moderne et très performant. Accélère l'installation des dépendances et l'exécution des scripts par rapport à npm/yarn.
+Origine du projet,google-gemini/aistudio-repository-template,"✅ Confirme l'intégration native avec l'écosystème AI Studio, facilitant le déploiement et l'itération rapide."
+Structure,src/", "public/assets/aistudio", ".env.example,✅ Architecture standard et propre. La présence de .env.example est une bonne pratique de sécurité essentielle.

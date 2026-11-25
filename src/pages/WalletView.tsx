@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Check, Copy, CreditCard, Eye, EyeOff, Plus, Star, Trash2, Wallet } from 'lucide-react';
+import { Check, Copy, Eye, EyeOff, Plus, Star, Trash2, Wallet } from 'lucide-react';
 import { useKLTStore } from '../context/KLTStoreContext';
 import { FX_RATES } from '../data/kltSeedData';
+import { VirtualVisaCardSection } from '../components/VirtualVisaCardSection';
 
 export const WalletView: React.FC = () => {
   const {
     t,
-    user,
     wallets,
     totalKltBalance,
     stakedKlt,
@@ -17,7 +17,6 @@ export const WalletView: React.FC = () => {
     setDefaultWallet,
     deleteWallet,
     notify,
-    setRoute,
     solanaConnected,
     walletProvider,
     openWalletModal,
@@ -93,99 +92,65 @@ export const WalletView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Wallet Summary + Virtual Visa Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-[#0F172A] border border-slate-800 rounded-xl p-6 flex flex-col justify-between space-y-6">
-          <div>
-            <p className="text-xs font-medium text-slate-400">
-              {t('Solde Cumulé Disponible', 'Combined Available Balance')}
-            </p>
-            <p className="text-3xl sm:text-4xl font-bold text-white font-mono-tabular mt-2">
-              {hideBalances ? '•••••• KLT' : `${totalKltBalance.toLocaleString('en-US', { maximumFractionDigits: 4 })} KLT`}
-            </p>
-            <p className="text-sm text-amber-400 font-mono-tabular mt-1">
-              {hideBalances
-                ? '••••••'
-                : `≈ $${totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD · €${totalEur.toLocaleString('en-US', { maximumFractionDigits: 2 })} · ${Math.round(totalXof).toLocaleString('fr-FR')} FCFA`}
-            </p>
-          </div>
-
-          {defaultWallet && (
-            <div className="space-y-2">
-              <p className="text-xs text-slate-400">
-                {t('Adresse Solana Principale', 'Default Solana Address')} ({defaultWallet.network})
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 px-3.5 py-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono-tabular text-xs text-slate-300 truncate">
-                  {defaultWallet.walletAddress}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyAddress(defaultWallet.id, defaultWallet.walletAddress)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-xs font-medium text-slate-200 whitespace-nowrap"
-                >
-                  {copiedId === defaultWallet.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedId === defaultWallet.id ? t('Copié', 'Copied') : t('Copier', 'Copy')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800 text-xs">
-            <div>
-              <p className="text-slate-400">{t('$KLT Staké', 'Staked $KLT')}</p>
-              <p className="text-base font-bold text-white font-mono-tabular mt-1">
-                {hideBalances ? '••••' : `${stakedKlt.toLocaleString()} KLT`}
-              </p>
-            </div>
-            <div>
-              <p className="text-slate-400">{t('Bonus Parrainage', 'Referral Tier')}</p>
-              <p className="text-base font-bold text-emerald-400 font-mono-tabular mt-1">+1,250 KLT</p>
-            </div>
-            <div>
-              <p className="text-slate-400">{t('Points Fidélité', 'Loyalty Points')}</p>
-              <p className="text-base font-bold text-amber-400 font-mono-tabular mt-1">
-                {Math.floor(totalKltBalance).toLocaleString()} pts
-              </p>
-            </div>
-          </div>
+      {/* Main Wallet Summary */}
+      <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-6 flex flex-col justify-between space-y-6">
+        <div>
+          <p className="text-xs font-medium text-slate-400">
+            {t('Solde Cumulé Disponible', 'Combined Available Balance')}
+          </p>
+          <p className="text-3xl sm:text-4xl font-bold text-white font-mono-tabular mt-2">
+            {hideBalances ? '•••••• KLT' : `${totalKltBalance.toLocaleString('en-US', { maximumFractionDigits: 4 })} KLT`}
+          </p>
+          <p className="text-sm text-amber-400 font-mono-tabular mt-1">
+            {hideBalances
+              ? '••••••'
+              : `≈ $${totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD · €${totalEur.toLocaleString('en-US', { maximumFractionDigits: 2 })} · ${Math.round(totalXof).toLocaleString('fr-FR')} FCFA`}
+          </p>
         </div>
 
-        {/* Virtual Visa Card Preview */}
-        <div className="bg-gradient-to-br from-slate-900 via-[#121C33] to-slate-950 border border-amber-500/30 rounded-xl p-6 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-serif-luxury text-sm font-semibold text-amber-400">MAISON MARK KANICH</p>
-              <p className="text-[11px] text-slate-400">{t('Carte Visa Virtuelle · Q4 2026', 'Virtual Visa Card · Q4 2026')}</p>
-            </div>
-            <CreditCard className="w-6 h-6 text-amber-400" />
-          </div>
-
-          <div className="my-6">
-            <p className="font-mono-tabular text-lg tracking-widest text-white">
-              4539 •••• •••• 8042
+        {defaultWallet && (
+          <div className="space-y-2">
+            <p className="text-xs text-slate-400">
+              {t('Adresse Solana Principale', 'Default Solana Address')} ({defaultWallet.network})
             </p>
-            <div className="flex items-center justify-between mt-4 text-xs">
-              <div>
-                <span className="text-slate-500 block text-[10px]">{t('TITULAIRE', 'CARDHOLDER')}</span>
-                <span className="text-slate-200 font-medium">{user.name.toUpperCase()}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 px-3.5 py-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono-tabular text-xs text-slate-300 truncate">
+                {defaultWallet.walletAddress}
               </div>
-              <div className="text-right">
-                <span className="text-slate-500 block text-[10px]">EXP / TIER</span>
-                <span className="text-amber-400 font-mono-tabular">11/29 · VIP</span>
-              </div>
+              <button
+                type="button"
+                onClick={() => copyAddress(defaultWallet.id, defaultWallet.walletAddress)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-xs font-medium text-slate-200 whitespace-nowrap"
+              >
+                {copiedId === defaultWallet.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedId === defaultWallet.id ? t('Copié', 'Copied') : t('Copier', 'Copy')}
+              </button>
             </div>
           </div>
+        )}
 
-          <button
-            type="button"
-            onClick={() => setRoute('solana-trading')}
-            className="w-full py-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold transition-colors"
-          >
-            {t('Gérer le Staking d’accès Visa →', 'Manage Visa Access Staking →')}
-          </button>
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800 text-xs">
+          <div>
+            <p className="text-slate-400">{t('$KLT Staké', 'Staked $KLT')}</p>
+            <p className="text-base font-bold text-white font-mono-tabular mt-1">
+              {hideBalances ? '••••' : `${stakedKlt.toLocaleString()} KLT`}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-400">{t('Bonus Parrainage', 'Referral Tier')}</p>
+            <p className="text-base font-bold text-emerald-400 font-mono-tabular mt-1">+1,250 KLT</p>
+          </div>
+          <div>
+            <p className="text-slate-400">{t('Points Fidélité', 'Loyalty Points')}</p>
+            <p className="text-base font-bold text-amber-400 font-mono-tabular mt-1">
+              {Math.floor(totalKltBalance).toLocaleString()} pts
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Interactive Virtual Visa Card & $KLT Anchor Escrow Recharge */}
+      <VirtualVisaCardSection />
 
       {/* Create Wallet Form */}
       {showCreateForm && (

@@ -24,6 +24,7 @@ import {
 } from './pages/AccountAdminViews';
 import { ActionPlanComplianceView, RefundPolicyView } from './pages/ComplianceRefundView';
 import { EightPillarsReportingView, ReferralProgramView } from './pages/ReferralAndPillarsView';
+import { NftVillagiaView } from './pages/NftVillagiaView';
 
 const RouteView: React.FC = () => {
   const { route } = useKLTStore();
@@ -60,6 +61,8 @@ const RouteView: React.FC = () => {
       return <PresentationView initialSection="roadmap" />;
     case 'pillars-reporting':
       return <EightPillarsReportingView />;
+    case 'nft-villagia':
+      return <NftVillagiaView />;
     case 'referral':
       return <ReferralProgramView />;
     case 'whitepaper':

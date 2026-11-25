@@ -1,0 +1,46 @@
+# ==============================================================================
+# ENVIRONNEMENT GÉNÉRAL
+# ==============================================================================
+# Mode de l'application (development, staging, production)
+VITE_APP_ENV=development
+
+# URL de base de l'application (à changer en production pour le domaine custom)
+VITE_APP_URL=http://localhost:5173
+
+# ==============================================================================
+# WEB3 & SOLANA (KLT TOKEN)
+# ==============================================================================
+# Réseau Solana (devnet pour les tests, mainnet-beta pour la production)
+VITE_SOLANA_NETWORK=devnet
+
+# Point de terminaison RPC (Utiliser Helius, QuickNode ou le public en dev)
+VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
+
+# Adresse du Mint du Token $KLT (À METTRE À JOUR APRÈS CRÉATION PUMP.FUN)
+# Exemple en prod: VITE_KLT_MINT_ADDRESS=KLTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+VITE_KLT_MINT_ADDRESS=11111111111111111111111111111111
+
+# Adresse du coffre-fort de l'équipe (pour affichage vesting si nécessaire)
+VITE_TEAM_VAULT_ADDRESS=TeamVaultxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# ==============================================================================
+# PAIEMENTS (PADDLE / PAYSTACK)
+# ==============================================================================
+# Clé Publique Paddle (SANS les caractères 'live_' ou 'test_' secrets)
+VITE_PADDLE_CLIENT_TOKEN=your_paddle_client_token_here
+
+# Environnement Paddle (sandbox ou production)
+VITE_PADDLE_ENVIRONMENT=sandbox
+
+# ==============================================================================
+# BACKEND & SÉCURITÉ (Ne pas préfixer par VITE_ si réservé au serveur Node/Bun)
+# ==============================================================================
+# URL de votre API Backend (si séparée du frontend Vite)
+API_BASE_URL=http://localhost:3000
+
+# Clé secrète pour les JWT (Générer avec: openssl rand -hex 32)
+# ⚠️ NE JAMAIS EXPOSER CETTE CLÉ DANS LE CODE FRONTEND
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+
+# URL de la base de données (PostgreSQL / Supabase)
+DATABASE_URL=postgresql://user:password@localhost:5432/klt_dashboard

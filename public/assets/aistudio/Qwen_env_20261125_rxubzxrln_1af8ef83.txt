@@ -1,0 +1,35 @@
+# ==============================================================================
+# ENVIRONNEMENT GÉNÉRAL
+# ==============================================================================
+VITE_APP_ENV=development
+VITE_APP_URL=http://localhost:5173
+
+# ==============================================================================
+# WEB3 & SOLANA (KLT)
+# ==============================================================================
+# Utilisez devnet pour les tests, mainnet-beta pour la production
+VITE_SOLANA_NETWORK=devnet
+VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
+
+# Adresse du Mint $KLT (sera mise à jour après le lancement)
+VITE_KLT_MINT_ADDRESS=11111111111111111111111111111111
+
+# Adresse du coffre-fort de l'équipe (pour affichage vesting)
+VITE_TEAM_VAULT_ADDRESS=TeamVaultxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# ==============================================================================
+# PAIEMENTS (PADDLE)
+# ==============================================================================
+# Clé publique client (ne commence PAS par 'live_' et ne contient pas de secrets)
+VITE_PADDLE_CLIENT_TOKEN=test_your_public_token_here
+VITE_PADDLE_ENVIRONMENT=sandbox
+
+# ==============================================================================
+# BACKEND (Ne pas préfixer par VITE_ pour qu'ils ne soient PAS exposés au navigateur)
+# ==============================================================================
+DATABASE_URL=postgresql://user:password@localhost:5432/klt_dashboard
+JWT_SECRET=change_this_to_a_long_random_string_in_production
+
+# ⚠️ LA CLÉ PRIVÉE DU TRÉSOR (DEPLOYER_KEYPAIR) NE DOIT JAMAIS ÊTRE ICI 
+# si ce projet est un frontend pur. Elle doit rester sur un serveur backend 
+# sécurisé ou dans un script de déploiement local hors du dépôt Git.

@@ -1,4 +1,5 @@
 import {
+  AccessNftTier,
   CryptoAsset,
   CsvUserRecord,
   DaoProposal,
@@ -11,6 +12,8 @@ import {
   SubscriptionPlan,
   TransactionRecord,
   UserProfile,
+  VillagiaDividendState,
+  VisaCardState,
   WalletRecord,
 } from '../types/klt';
 
@@ -355,6 +358,7 @@ export const INITIAL_DAO_PROPOSALS: DaoProposal[] = [
     status: 'Active',
     votesFor: 684000,
     votesAgainst: 112000,
+    votesAbstain: 18400,
     quorumRequired: 500000,
     endsAt: '2026-11-30',
     author: 'KIIS Global Treasury',
@@ -371,6 +375,7 @@ export const INITIAL_DAO_PROPOSALS: DaoProposal[] = [
     status: 'Active',
     votesFor: 540200,
     votesAgainst: 89400,
+    votesAbstain: 14200,
     quorumRequired: 500000,
     endsAt: '2026-12-05',
     author: 'Mark Kanich Product Lab',
@@ -387,6 +392,7 @@ export const INITIAL_DAO_PROPOSALS: DaoProposal[] = [
     status: 'Passed',
     votesFor: 1420000,
     votesAgainst: 32000,
+    votesAbstain: 9500,
     quorumRequired: 500000,
     endsAt: '2026-11-10',
     author: 'Adama Fanny Sheickner',
@@ -403,6 +409,7 @@ export const INITIAL_DAO_PROPOSALS: DaoProposal[] = [
     status: 'Executed',
     votesFor: 980000,
     votesAgainst: 74000,
+    votesAbstain: 21000,
     quorumRequired: 500000,
     endsAt: '2026-10-28',
     author: 'Beldozac Finance',
@@ -1041,4 +1048,153 @@ export const EIGHT_PILLARS_REPORTING = [
     statusEn: 'CI Distribution',
   },
 ];
+
+export const INITIAL_VISA_CARD_STATE: VisaCardState = {
+  lastFour: '4242',
+  expiry: '12/28',
+  cvv: '847',
+  isFrozen: false,
+  kltEscrowBalance: 12500,
+  transactions: [
+    {
+      id: 'vtx-1',
+      merchant: 'Mark Kanich Fashion',
+      categoryFr: 'Luxe & Couture',
+      categoryEn: 'Luxury & Couture',
+      amountUsd: -450.0,
+      date: '2026-11-24',
+      txHash: '7vKLT...9mP1',
+    },
+    {
+      id: 'vtx-2',
+      merchant: 'ImmoScale AI (Abonnement)',
+      categoryFr: 'SaaS IA',
+      categoryEn: 'AI SaaS',
+      amountUsd: -99.0,
+      date: '2026-11-22',
+      txHash: '4iMmS...3cQ8',
+    },
+    {
+      id: 'vtx-3',
+      merchant: 'Villagia Intercontinentale',
+      categoryFr: 'Immobilier',
+      categoryEn: 'Real Estate',
+      amountUsd: -1200.0,
+      date: '2026-11-18',
+      txHash: '9vVil...2kL5',
+    },
+    {
+      id: 'vtx-4',
+      merchant: 'Recharge Coffre Escrow $KLT',
+      categoryFr: 'Dépôt Anchor',
+      categoryEn: 'Anchor Escrow Top-up',
+      amountUsd: 5625.0,
+      date: '2026-11-15',
+      txHash: '2eEsc...6wR4',
+    },
+  ],
+};
+
+export const INITIAL_ACCESS_NFT_TIERS: AccessNftTier[] = [
+  {
+    id: 'NFT-003',
+    name: 'Pass Cosmétique VIP',
+    nameEn: 'Cosmetics VIP Pass',
+    tier: 'Bronze',
+    priceKlt: 1500,
+    pillarFr: 'Luxe & Lifestyle',
+    pillarEn: 'Luxury & Lifestyle',
+    benefitsFr: [
+      'Coffret trimestriel Mark Kanich Cosmétique',
+      'Accès prioritaire aux ventes privées',
+      'Points de fidélité doublés (x2)',
+    ],
+    benefitsEn: [
+      'Quarterly Mark Kanich Cosmetics box',
+      'Priority access to private releases',
+      'Double loyalty multiplier (2x)',
+    ],
+    supply: 1000,
+    minted: 650,
+  },
+  {
+    id: 'NFT-001',
+    name: 'Pass Fashion Artisan',
+    nameEn: 'Fashion Artisan Pass',
+    tier: 'Silver',
+    priceKlt: 5000,
+    pillarFr: 'Haute Couture',
+    pillarEn: 'Haute Couture',
+    benefitsFr: [
+      '-15% sur toute la collection Mark Kanich Fashion',
+      'Accès prioritaire aux défilés privés Abidjan / Paris',
+      'Consultation stylisme annuelle sur mesure',
+    ],
+    benefitsEn: [
+      '15% off across Mark Kanich Fashion collections',
+      'Priority invitations to private runway shows',
+      'Annual bespoke styling consultation',
+    ],
+    supply: 500,
+    minted: 142,
+  },
+  {
+    id: 'NFT-002',
+    name: 'Pass Villagia Investor',
+    nameEn: 'Villagia Investor Pass',
+    tier: 'Gold',
+    priceKlt: 25000,
+    pillarFr: 'Immobilier & Patrimoine',
+    pillarEn: 'Real Estate & Heritage',
+    benefitsFr: [
+      'Accès aux avant-premières Résidence Iroko',
+      'Réduction de 2% sur les frais d’acquisition',
+      'Accès prioritaire aux distributions Merkle USDC',
+    ],
+    benefitsEn: [
+      'Early access to Iroko Residence real estate launches',
+      '2% fee reduction on property closing costs',
+      'Priority access to Merkle USDC dividend distributions',
+    ],
+    supply: 100,
+    minted: 87,
+  },
+  {
+    id: 'NFT-004',
+    name: 'Pass Gouvernance Platinum',
+    nameEn: 'Platinum Governance Pass',
+    tier: 'Platinum',
+    priceKlt: 100000,
+    pillarFr: 'Technologie & Finance',
+    pillarEn: 'Technology & Finance',
+    benefitsFr: [
+      'Multiplicateur de vote DAO x5 sur les propositions KIP',
+      'Accès direct au conseil stratégique KIIS Global',
+      'Allocation prioritaire deals Beldozac Finance',
+    ],
+    benefitsEn: [
+      '5x DAO voting power multiplier on KIP proposals',
+      'Direct access to KIIS Global advisory council',
+      'Priority Beldozac Finance deal-flow allocation',
+    ],
+    supply: 20,
+    minted: 12,
+  },
+];
+
+export const INITIAL_VILLAGIA_DIVIDEND: VillagiaDividendState = {
+  epochLabel: 'T4 2026 · Époque #04',
+  propertyTitle: 'Résidence Iroko — Yopougon, Abidjan',
+  merkleRoot: '0x94c7e1a8f32b09d4e51a6b7c88f01234a9e6d2c1b8f04a72e5c31098b7d421f0',
+  usdcMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  eligibleUsdc: 485.5,
+  claimedUsdc: 1240.0,
+  hasClaimed: false,
+  proofHashes: [
+    '0x3a18f09c4e72b11a5d9024c68e31f70b2a4c6d8e1f0392a4b5c6d7e8f9a01b2c',
+    '0x7f42c910a8b3d5e6f7123456789abcdef0123456789abcdef0123456789ab12',
+    '0xc519e840b2d4f6a1c3e50798123456789abcdef0fedcba9876543210abcdef45',
+  ],
+};
+
 

@@ -16,6 +16,7 @@ export type RouteId =
   | 'live-statistics'
   | 'crypto-rates'
   | 'pillars-reporting'
+  | 'nft-villagia'
   | 'referral'
   | 'dao'
   | 'faq'
@@ -155,10 +156,11 @@ export interface DaoProposal {
   status: 'Active' | 'Passed' | 'Rejected' | 'Executed';
   votesFor: number;
   votesAgainst: number;
+  votesAbstain: number;
   quorumRequired: number;
   endsAt: string;
   author: string;
-  userVote?: 'for' | 'against';
+  userVote?: 'for' | 'against' | 'abstain';
 }
 
 export interface FaqItem {
@@ -224,6 +226,7 @@ export interface PriceAlertRule {
   id: string;
   condition: 'above' | 'below';
   targetPriceUsd: number;
+  actionIntent?: 'buy' | 'sell';
   label?: string;
   active: boolean;
   triggered: boolean;
@@ -253,4 +256,51 @@ export interface ReferralRecord {
   status: 'Active' | 'Pending';
   joinedAt: string;
 }
+
+export interface VisaCardTransaction {
+  id: string;
+  merchant: string;
+  categoryFr: string;
+  categoryEn: string;
+  amountUsd: number;
+  date: string;
+  txHash?: string;
+}
+
+export interface VisaCardState {
+  lastFour: string;
+  expiry: string;
+  cvv: string;
+  isFrozen: boolean;
+  kltEscrowBalance: number;
+  transactions: VisaCardTransaction[];
+}
+
+export interface AccessNftTier {
+  id: string;
+  name: string;
+  nameEn: string;
+  tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  priceKlt: number;
+  pillarFr: string;
+  pillarEn: string;
+  benefitsFr: string[];
+  benefitsEn: string[];
+  supply: number;
+  minted: number;
+}
+
+export interface VillagiaDividendState {
+  epochLabel: string;
+  propertyTitle: string;
+  merkleRoot: string;
+  usdcMint: string;
+  eligibleUsdc: number;
+  claimedUsdc: number;
+  hasClaimed: boolean;
+  claimedAt?: string;
+  txSignature?: string;
+  proofHashes: string[];
+}
+
 

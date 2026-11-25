@@ -1,0 +1,21 @@
+# Environnement
+.env
+.env.local
+.env.*.local
+
+# Dépendances et Build
+node_modules/
+dist/
+build/
+bun.lockb
+
+# IDE et OS
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Fichiers sensibles spécifiques
+*.pem
+*.key
+treasury-keypair.json

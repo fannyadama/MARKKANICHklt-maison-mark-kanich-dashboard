@@ -1,0 +1,5 @@
+[programs.devnet]
+klt_card_escrow = "VOTRE_PROGRAM_ID_DEVNET_ICI"
+
+[programs.mainnet]
+klt_card_escrow = "VOTRE_PROGRAM_ID_MAINNET_ICI" # Sera le même une fois déployé en prod

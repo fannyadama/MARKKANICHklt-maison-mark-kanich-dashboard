@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Coins,
   CreditCard,
+  Crown,
   FileText,
   HelpCircle,
   History,
@@ -160,6 +161,15 @@ const NAV_ITEMS: NavItem[] = [
     descEn: 'KIIS CashFlow, ImmoScale AI, Villagia, Beldozac...',
     group: 'ecosystem',
     icon: Building2,
+  },
+  {
+    id: 'nft-villagia',
+    labelFr: 'NFT Tiers & Villagia',
+    labelEn: 'NFT Tiers & Villagia',
+    descFr: 'Pass NFT Solana & dividendes Merkle USDC',
+    descEn: 'Solana NFT Passes & Merkle USDC dividends',
+    group: 'ecosystem',
+    icon: Crown,
   },
   {
     id: 'referral',

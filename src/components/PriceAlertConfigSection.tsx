@@ -403,6 +403,15 @@ export const PriceAlertConfigSection: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
+                        {rule.actionIntent && (
+                          <span
+                            className={`text-[10px] font-semibold uppercase ${
+                              rule.actionIntent === 'buy' ? 'text-emerald-400' : 'text-amber-400'
+                            }`}
+                          >
+                            {rule.actionIntent === 'buy' ? t('ACHAT', 'BUY') : t('VENTE', 'SELL')}
+                          </span>
+                        )}
                         <span className="font-mono-tabular text-sm font-semibold text-white">
                           $KLT {isAbove ? '≥' : '≤'} ${rule.targetPriceUsd.toFixed(4)}
                         </span>

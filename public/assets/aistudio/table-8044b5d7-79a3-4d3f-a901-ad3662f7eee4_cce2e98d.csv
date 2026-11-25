@@ -1,0 +1,6 @@
+﻿Composant,Rôle,"Standard ""Zéro Compromis"""
+Smart Contract Anchor,Verrouille les $KLT on-chain,"Fonds réellement séquestrés, révocables"
+API Création Carte,KYC + Génération Stripe,"Idempotence, validation des données"
+API Rechargement,Vérifie Tx Solana → Crédite fiat,"Anti-rejeu, vérification cryptographique du signataire"
+Webhook Stripe,Autorisation/Capture en < 50ms,"Aucun appel RPC, pure vitesse SQL"
+Composant React,UX fluide avec Phantom/Solflare,"Gestion d'états, notifications, timeout"
